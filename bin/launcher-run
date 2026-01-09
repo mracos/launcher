@@ -1,0 +1,28 @@
+#!/bin/bash
+# launcher-run - Wrapper for launchd agents with failure notifications
+#
+# USAGE: launcher-run [--no-notify] <name> <command> [args...]
+#
+# Runs the command and displays a macOS notification on failure.
+# Used by launchd agent wrapper scripts for consistent error handling.
+#
+# OPTIONS:
+#   --no-notify  Skip failure notification (for scripts with their own)
+
+set -euo pipefail
+
+notify=true
+if [[ "${1:-}" == "--no-notify" ]]; then
+  notify=false
+  shift
+fi
+
+name="$1"
+shift
+
+if ! "$@" 2>&1; then
+  if [[ "$notify" == true ]]; then
+    osascript -e "display notification \"$name failed\" with title \"Launcher Error\" sound name \"Basso\""
+  fi
+  exit 1
+fi
