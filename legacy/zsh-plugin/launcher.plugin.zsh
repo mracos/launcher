@@ -6,7 +6,9 @@
 #   Sends macOS notification on failure (no silent failures).
 #
 # USAGE:
-#   launcher ls                           List your agents
+#   launcher ls [-v]                      List agents (verbose with -v)
+#   launcher info <name>                  Show agent details (runs, exit, logs)
+#   launcher logs <name> [-f]             Show agent logs (follow with -f)
 #   launcher new [-d dir] <name> <cmd> [interval]  Create an agent
 #   launcher rm <name>                    Remove an agent
 #   launcher edit <name>                  Edit agent plist in $EDITOR
@@ -64,7 +66,9 @@ launcher() {
   shift 2>/dev/null
 
   case "$cmd" in
-    ls)     _launcher_ls ;;
+    ls)     _launcher_ls "$@" ;;
+    info)   _launcher_info "$@" ;;
+    logs)   _launcher_logs "$@" ;;
     new)    _launcher_new "$@" ;;
     rm)     _launcher_rm "$@" ;;
     edit)   _launcher_edit "$@" ;;
@@ -77,7 +81,9 @@ launcher() {
       echo "Usage: launcher <command> [args]"
       echo ""
       echo "Commands:"
-      echo "  ls                           List agents"
+      echo "  ls [-v]                      List agents (verbose with -v)"
+      echo "  info <name>                  Show agent details"
+      echo "  logs <name> [-f]             Show agent logs (follow with -f)"
       echo "  new [-d dir] <name> <cmd> [interval]  Create agent"
       echo "  rm <name>                    Remove agent"
       echo "  edit <name>                  Edit agent plist"
@@ -91,14 +97,220 @@ launcher() {
   esac
 }
 
+# Get launchd info for an agent (label without prefix)
+_launcher_launchd_info() {
+  local name="$1"
+  local label="${LAUNCHER_PREFIX}.${name}"
+  local uid=$(id -u)
+
+  # Get basic info from launchctl list
+  local list_line=$(launchctl list 2>/dev/null | grep "	${label}$")
+  local pid="-"
+  local exit_code="-"
+
+  if [[ -n "$list_line" ]]; then
+    pid=$(echo "$list_line" | awk '{print $1}')
+    exit_code=$(echo "$list_line" | awk '{print $2}')
+  fi
+
+  # Get detailed info from launchctl print
+  local print_info=$(launchctl print "gui/${uid}/${label}" 2>/dev/null)
+  local runs="-"
+  local last_exit="-"
+  local stdout_path=""
+  local stderr_path=""
+  local interval="-"
+  local state="stopped"
+
+  if [[ -n "$print_info" ]]; then
+    runs=$(echo "$print_info" | grep "^	runs = " | awk '{print $3}')
+    last_exit=$(echo "$print_info" | grep "^	last exit code = " | awk '{print $5}')
+    stdout_path=$(echo "$print_info" | grep "^	stdout path = " | sed 's/.*stdout path = //')
+    stderr_path=$(echo "$print_info" | grep "^	stderr path = " | sed 's/.*stderr path = //')
+    interval=$(echo "$print_info" | grep "^	run interval = " | sed 's/.*run interval = //' | sed 's/ seconds/s/')
+
+    if echo "$print_info" | grep -q "state = running"; then
+      state="running"
+    fi
+  fi
+
+  # Fallback to plist for log paths if not running
+  if [[ -z "$stdout_path" ]]; then
+    local plist="$(_launcher_plist "$name")"
+    if [[ -f "$plist" ]]; then
+      stdout_path=$(/usr/libexec/PlistBuddy -c "Print :StandardOutPath" "$plist" 2>/dev/null || echo "")
+      stderr_path=$(/usr/libexec/PlistBuddy -c "Print :StandardErrorPath" "$plist" 2>/dev/null || echo "")
+    fi
+  fi
+
+  # Output as key=value pairs
+  echo "pid=${pid}"
+  echo "exit_code=${exit_code}"
+  echo "runs=${runs:-0}"
+  echo "last_exit=${last_exit:--}"
+  echo "stdout_path=${stdout_path}"
+  echo "stderr_path=${stderr_path}"
+  echo "interval=${interval}"
+  echo "state=${state}"
+}
+
 _launcher_ls() {
-  ls ${LAUNCHER_DIR}/${LAUNCHER_PREFIX}.*.plist 2>/dev/null | while read f; do
+  local verbose=false
+  [[ "${1:-}" == "-v" ]] && verbose=true
+
+  local plists=(${LAUNCHER_DIR}/${LAUNCHER_PREFIX}.*.plist(N))
+  if [[ ${#plists[@]} -eq 0 ]]; then
+    echo "No agents found in ${LAUNCHER_DIR}"
+    return 0
+  fi
+
+  if $verbose; then
+    printf "%-18s %-8s %6s %6s %5s  %s\n" "NAME" "STATUS" "PID" "RUNS" "EXIT" "LAST LOG"
+    printf "%-18s %-8s %6s %6s %5s  %s\n" "----" "------" "---" "----" "----" "--------"
+  fi
+
+  for f in "${plists[@]}"; do
     local name=$(basename "$f" .plist | sed "s/${LAUNCHER_PREFIX}\.//")
     local installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
-    local linked=$([[ -L "$installed_plist" ]] && echo "linked" || echo "unlinked")
-    local state=$([[ "$linked" == "linked" ]] && launchctl list | grep -q "${LAUNCHER_PREFIX}.${name}" && echo "running" || echo "stopped")
-    echo "$name ($linked, $state)"
+    local linked=$([[ -L "$installed_plist" ]] && echo true || echo false)
+
+    if ! $linked; then
+      if $verbose; then
+        printf "%-18s %-8s %6s %6s %5s  %s\n" "$name" "unlinked" "-" "-" "-" "-"
+      else
+        echo "$name (unlinked)"
+      fi
+      continue
+    fi
+
+    # Parse launchd info
+    local info=$(_launcher_launchd_info "$name")
+    local pid=$(echo "$info" | grep "^pid=" | cut -d= -f2)
+    local runs=$(echo "$info" | grep "^runs=" | cut -d= -f2)
+    local last_exit=$(echo "$info" | grep "^last_exit=" | cut -d= -f2)
+    local stdout_path=$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)
+    local state=$(echo "$info" | grep "^state=" | cut -d= -f2)
+
+    if $verbose; then
+      # Get last log line
+      local last_log="-"
+      if [[ -n "$stdout_path" && -f "$stdout_path" ]]; then
+        last_log=$(tail -1 "$stdout_path" 2>/dev/null | cut -c1-50)
+        [[ ${#last_log} -eq 50 ]] && last_log="${last_log}..."
+      fi
+      [[ -z "$last_log" ]] && last_log="-"
+
+      printf "%-18s %-8s %6s %6s %5s  %s\n" \
+        "$name" "$state" "$pid" "${runs:-0}" "${last_exit:--}" "$last_log"
+    else
+      local status_icon="○"
+      [[ "$state" == "running" ]] && status_icon="●"
+      [[ "$last_exit" != "0" && "$last_exit" != "-" ]] && status_icon="✗"
+      printf "%s %s (%s, %s runs)\n" "$status_icon" "$name" "$state" "${runs:-0}"
+    fi
   done
+}
+
+_launcher_info() {
+  local name="$1"
+  if [[ -z "$name" ]]; then
+    echo "Usage: launcher info <name>"
+    return 1
+  fi
+
+  local plist="$(_launcher_plist "$name")"
+  if [[ ! -f "$plist" ]]; then
+    echo "Not found: $name"
+    return 1
+  fi
+
+  local installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
+  local linked=$([[ -L "$installed_plist" ]] && echo "yes" || echo "no")
+
+  echo "Agent: $name"
+  echo "Label: ${LAUNCHER_PREFIX}.${name}"
+  echo "Plist: $plist"
+  echo "Linked: $linked"
+  echo ""
+
+  if [[ "$linked" == "no" ]]; then
+    echo "Run 'launcher link $name' to enable"
+    return 0
+  fi
+
+  local info=$(_launcher_launchd_info "$name")
+  local pid=$(echo "$info" | grep "^pid=" | cut -d= -f2)
+  local state=$(echo "$info" | grep "^state=" | cut -d= -f2)
+  local runs=$(echo "$info" | grep "^runs=" | cut -d= -f2)
+  local last_exit=$(echo "$info" | grep "^last_exit=" | cut -d= -f2)
+  local interval=$(echo "$info" | grep "^interval=" | cut -d= -f2)
+  local stdout_path=$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)
+  local stderr_path=$(echo "$info" | grep "^stderr_path=" | cut -d= -f2-)
+
+  echo "Status: $state"
+  [[ "$pid" != "-" ]] && echo "PID: $pid"
+  echo "Runs: ${runs:-0}"
+  echo "Last exit: ${last_exit:--}"
+  [[ "$interval" != "-" ]] && echo "Interval: $interval"
+  echo ""
+
+  if [[ -n "$stdout_path" ]]; then
+    echo "Stdout: $stdout_path"
+  fi
+  if [[ -n "$stderr_path" && "$stderr_path" != "$stdout_path" ]]; then
+    echo "Stderr: $stderr_path"
+  fi
+
+  # Show last few log lines
+  if [[ -n "$stdout_path" && -f "$stdout_path" ]]; then
+    echo ""
+    echo "Last 5 log lines:"
+    tail -5 "$stdout_path" 2>/dev/null | sed 's/^/  /'
+  fi
+}
+
+_launcher_logs() {
+  local name="$1"
+  local follow=false
+  shift 2>/dev/null || true
+  [[ "${1:-}" == "-f" ]] && follow=true
+
+  if [[ -z "$name" ]]; then
+    echo "Usage: launcher logs <name> [-f]"
+    return 1
+  fi
+
+  local plist="$(_launcher_plist "$name")"
+  if [[ ! -f "$plist" ]]; then
+    echo "Not found: $name"
+    return 1
+  fi
+
+  # Get log path from plist or launchd
+  local info=$(_launcher_launchd_info "$name")
+  local stdout_path=$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)
+
+  if [[ -z "$stdout_path" ]]; then
+    # Fallback to plist
+    stdout_path=$(/usr/libexec/PlistBuddy -c "Print :StandardOutPath" "$plist" 2>/dev/null || echo "")
+  fi
+
+  if [[ -z "$stdout_path" ]]; then
+    echo "No log path configured for $name"
+    echo "Add StandardOutPath/StandardErrorPath to the plist"
+    return 1
+  fi
+
+  if [[ ! -f "$stdout_path" ]]; then
+    echo "Log file not found: $stdout_path"
+    return 1
+  fi
+
+  if $follow; then
+    tail -f "$stdout_path"
+  else
+    tail -20 "$stdout_path"
+  fi
 }
 
 _launcher_new() {
