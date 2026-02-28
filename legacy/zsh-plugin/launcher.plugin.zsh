@@ -11,10 +11,12 @@
 #   launcher logs <name> [-f]             Show agent logs (follow with -f)
 #   launcher new [-d dir] <name> <cmd> [interval]  Create an agent
 #   launcher rm <name>                    Remove an agent
+#   launcher show <name>                  Show agent plist
 #   launcher edit <name>                  Edit agent plist in $EDITOR
 #   launcher link <name|--all>            Symlink agent to ~/Library/LaunchAgents
 #   launcher unlink <name|--all>          Remove symlink from ~/Library/LaunchAgents
 #   launcher reload <name>                Reload an agent
+#   launcher run <name>                   Run agent command manually
 #   launcher load <name>                  Load an agent
 #   launcher unload <name>                Unload an agent
 #
@@ -71,9 +73,11 @@ launcher() {
     logs)   _launcher_logs "$@" ;;
     new)    _launcher_new "$@" ;;
     rm)     _launcher_rm "$@" ;;
+    show)   _launcher_show "$@" ;;
     edit)   _launcher_edit "$@" ;;
     link)   _launcher_link "$@" ;;
     unlink) _launcher_unlink "$@" ;;
+    run)    _launcher_run "$@" ;;
     reload) _launcher_reload "$@" ;;
     load)   _launcher_load "$@" ;;
     unload) _launcher_unload "$@" ;;
@@ -86,9 +90,11 @@ launcher() {
       echo "  logs <name> [-f]             Show agent logs (follow with -f)"
       echo "  new [-d dir] <name> <cmd> [interval]  Create agent"
       echo "  rm <name>                    Remove agent"
+      echo "  show <name>                  Show agent plist"
       echo "  edit <name>                  Edit agent plist"
       echo "  link <name|--all>            Symlink to ~/Library/LaunchAgents"
       echo "  unlink <name|--all>          Remove symlink"
+      echo "  run <name>                   Run agent command manually"
       echo "  reload <name>                Reload agent"
       echo "  load <name>                  Load agent"
       echo "  unload <name>                Unload agent"
@@ -392,6 +398,23 @@ _launcher_rm() {
   echo "Removed: $name"
 }
 
+_launcher_show() {
+  local name="$1"
+
+  if [[ -z "$name" ]]; then
+    echo "Usage: launcher show <name>"
+    return 1
+  fi
+
+  local plist="$(_launcher_plist "$name")"
+  if [[ ! -f "$plist" ]]; then
+    echo "Not found: $name"
+    return 1
+  fi
+
+  cat "$plist"
+}
+
 _launcher_edit() {
   local name="$1"
   local plist="$(_launcher_plist "$name")"
@@ -463,6 +486,23 @@ _launcher_unlink() {
   launchctl unload "$installed_plist" 2>/dev/null
   rm -f "$installed_bin" "$installed_plist"
   echo "Unlinked: $name"
+}
+
+_launcher_run() {
+  local name="$1"
+
+  if [[ -z "$name" ]]; then
+    echo "Usage: launcher run <name>"
+    return 1
+  fi
+
+  local bin="$(_launcher_bin "$name")"
+  if [[ ! -f "$bin" ]]; then
+    echo "Not found: $name"
+    return 1
+  fi
+
+  "$bin"
 }
 
 _launcher_reload() {
