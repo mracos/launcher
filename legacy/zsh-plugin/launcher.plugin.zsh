@@ -127,8 +127,10 @@ _launcher_launchd_info() {
   local stderr_path=""
   local interval="-"
   local state="stopped"
+  local loaded="false"
 
   if [[ -n "$print_info" ]]; then
+    loaded="true"
     runs=$(echo "$print_info" | grep "^	runs = " | awk '{print $3}')
     last_exit=$(echo "$print_info" | grep "^	last exit code = " | awk '{print $5}')
     stdout_path=$(echo "$print_info" | grep "^	stdout path = " | sed 's/.*stdout path = //')
@@ -138,6 +140,8 @@ _launcher_launchd_info() {
     if echo "$print_info" | grep -q "state = running"; then
       state="running"
     fi
+  elif [[ -n "$list_line" ]]; then
+    loaded="true"
   fi
 
   # Fallback to plist for log paths if not running
@@ -158,14 +162,37 @@ _launcher_launchd_info() {
   echo "stderr_path=${stderr_path}"
   echo "interval=${interval}"
   echo "state=${state}"
+  echo "loaded=${loaded}"
+}
+
+_launcher_loaded_names() {
+  local label
+  while IFS= read -r label; do
+    [[ -z "$label" ]] && continue
+    label="${label%\"}"
+    label="${label#\"}"
+    [[ "$label" == "Label" ]] && continue
+    [[ "$label" == ${LAUNCHER_PREFIX}.* ]] || continue
+    local name="${label#${LAUNCHER_PREFIX}.}"
+    name="${name%\"}"
+    name="${name#\"}"
+    [[ -n "$name" ]] && echo "$name"
+  done < <(launchctl list 2>/dev/null | awk '{print $3}')
 }
 
 _launcher_ls() {
   local verbose=false
   [[ "${1:-}" == "-v" ]] && verbose=true
 
+  typeset -A loaded_names
+  typeset -A plist_names
+  local loaded_name
+  while IFS= read -r loaded_name; do
+    [[ -n "$loaded_name" ]] && loaded_names[$loaded_name]=1
+  done < <(_launcher_loaded_names)
+
   local plists=(${LAUNCHER_DIR}/${LAUNCHER_PREFIX}.*.plist(N))
-  if [[ ${#plists[@]} -eq 0 ]]; then
+  if [[ ${#plists[@]} -eq 0 && ${#loaded_names[@]} -eq 0 ]]; then
     echo "No agents found in ${LAUNCHER_DIR}"
     return 0
   fi
@@ -177,14 +204,17 @@ _launcher_ls() {
 
   for f in "${plists[@]}"; do
     local name=$(basename "$f" .plist | sed "s/${LAUNCHER_PREFIX}\.//")
+    plist_names[$name]=1
     local installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
     local linked=$([[ -L "$installed_plist" ]] && echo true || echo false)
+    local loaded=false
+    [[ -n "${loaded_names[$name]:-}" ]] && loaded=true
 
-    if ! $linked; then
+    if ! $linked && ! $loaded; then
       if $verbose; then
-        printf "%-18s %-8s %6s %6s %5s  %s\n" "$name" "unlinked" "-" "-" "-" "-"
+        printf "%-18s %-8s %6s %6s %5s  %s\n" "$name" "unloaded" "-" "-" "-" "unlinked"
       else
-        echo "$name (unlinked)"
+        echo "◌ $name (unlinked, unloaded)"
       fi
       continue
     fi
@@ -196,6 +226,9 @@ _launcher_ls() {
     local last_exit=$(echo "$info" | grep "^last_exit=" | cut -d= -f2)
     local stdout_path=$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)
     local state=$(echo "$info" | grep "^state=" | cut -d= -f2)
+    local loaded_from_info=$(echo "$info" | grep "^loaded=" | cut -d= -f2)
+    [[ "$loaded_from_info" == "true" ]] && loaded=true
+    [[ "$loaded" != "true" ]] && state="unloaded"
 
     if $verbose; then
       # Get last log line
@@ -209,12 +242,39 @@ _launcher_ls() {
       printf "%-18s %-8s %6s %6s %5s  %s\n" \
         "$name" "$state" "$pid" "${runs:-0}" "${last_exit:--}" "$last_log"
     else
-      local status_icon="○"
+      local status_icon="◌"
       [[ "$state" == "running" ]] && status_icon="●"
+      [[ "$state" == "stopped" ]] && status_icon="○"
       [[ "$last_exit" != "0" && "$last_exit" != "-" ]] && status_icon="✗"
-      printf "%s %s (%s, %s runs)\n" "$status_icon" "$name" "$state" "${runs:-0}"
+      if [[ "$linked" == "true" ]]; then
+        printf "%s %s (%s, %s runs)\n" "$status_icon" "$name" "$state" "${runs:-0}"
+      else
+        printf "⚠ %s (%s, unlinked)\n" "$name" "$state"
+      fi
     fi
   done
+
+  typeset -A seen_orphans
+  local orphan_name
+  while IFS= read -r orphan_name; do
+    [[ -z "$orphan_name" ]] && continue
+    [[ -n "${seen_orphans[$orphan_name]:-}" ]] && continue
+    seen_orphans[$orphan_name]=1
+    [[ -n "${plist_names[$orphan_name]:-}" ]] && continue
+
+    local info=$(_launcher_launchd_info "$orphan_name")
+    local pid=$(echo "$info" | grep "^pid=" | cut -d= -f2)
+    local runs=$(echo "$info" | grep "^runs=" | cut -d= -f2)
+    local last_exit=$(echo "$info" | grep "^last_exit=" | cut -d= -f2)
+    local state=$(echo "$info" | grep "^state=" | cut -d= -f2)
+
+    if $verbose; then
+      printf "%-18s %-8s %6s %6s %5s  %s\n" \
+        "$orphan_name" "$state" "$pid" "${runs:-0}" "${last_exit:--}" "loaded, missing source plist"
+    else
+      printf "⚠ %s (loaded/%s, missing source plist)\n" "$orphan_name" "$state"
+    fi
+  done < <(_launcher_loaded_names)
 }
 
 _launcher_info() {
@@ -534,13 +594,26 @@ _launcher_load() {
 
 _launcher_unload() {
   local name="$1"
+  local label="${LAUNCHER_PREFIX}.${name}"
+  local uid=$(id -u)
   local installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
 
-  if [[ ! -f "$installed_plist" ]]; then
-    echo "Not linked: $name"
+  if [[ -f "$installed_plist" ]]; then
+    launchctl unload "$installed_plist" 2>/dev/null
+    echo "Unloaded: $name"
+    return 0
+  fi
+
+  if _launcher_loaded_names | grep -Fxq "$name"; then
+    if launchctl bootout "gui/${uid}/${label}" 2>/dev/null || launchctl remove "$label" 2>/dev/null; then
+      echo "Unloaded: $name"
+      return 0
+    fi
+
+    echo "Failed to unload loaded job: $name"
     return 1
   fi
 
-  launchctl unload "$installed_plist" 2>/dev/null
-  echo "Unloaded: $name"
+  echo "Not linked: $name"
+  return 1
 }
