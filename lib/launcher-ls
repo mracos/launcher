@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# List agents (verbose with -v)
+# USAGE: launcher ls [-v]
+
+set -euo pipefail
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib-cli.bash" --auto "$@"
+source "$SCRIPT_DIR/lib-plist.bash"
+source "$SCRIPT_DIR/lib-launchd.bash"
+
+verbose=false
+[[ "${1:-}" == "-v" ]] && verbose=true
+
+# Newline-delimited sets (bash 3.2 compat - no associative arrays)
+_loaded_names="$(launcher_loaded_names)"
+_plist_names=""
+_seen_orphans=""
+
+_in_set() { echo "$1" | grep -Fxq "$2"; }
+
+has_plists=false
+for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
+  [[ -f "$f" ]] || continue
+  has_plists=true
+  break
+done
+
+if ! $has_plists && [[ -z "$_loaded_names" ]]; then
+  echo "No agents found in ${LAUNCHER_DIR}"
+  exit 0
+fi
+
+if $verbose; then
+  printf "%-18s %-8s %6s %6s %5s  %s\n" "NAME" "STATUS" "PID" "RUNS" "EXIT" "LAST LOG"
+  printf "%-18s %-8s %6s %6s %5s  %s\n" "----" "------" "---" "----" "----" "--------"
+fi
+
+for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
+  [[ -f "$f" ]] || continue
+  name="$(basename "$f" .plist)"
+  name="${name#${LAUNCHER_PREFIX}.}"
+  _plist_names="${_plist_names}${_plist_names:+$'\n'}${name}"
+
+  installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
+  linked=false
+  [[ -L "$installed_plist" || -f "$installed_plist" ]] && linked=true
+
+  loaded=false
+  _in_set "$_loaded_names" "$name" && loaded=true
+
+  if ! $linked && ! $loaded; then
+    if $verbose; then
+      printf "%-18s %-8s %6s %6s %5s  %s\n" "$name" "unloaded" "-" "-" "-" "unlinked"
+    else
+      echo "◌ $name (unlinked, unloaded)"
+    fi
+    continue
+  fi
+
+  info="$(launcher_launchd_info "$name")"
+  pid="$(echo "$info" | grep "^pid=" | cut -d= -f2)"
+  runs="$(echo "$info" | grep "^runs=" | cut -d= -f2)"
+  last_exit="$(echo "$info" | grep "^last_exit=" | cut -d= -f2)"
+  stdout_path="$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)"
+  state="$(echo "$info" | grep "^state=" | cut -d= -f2)"
+  loaded_from_info="$(echo "$info" | grep "^loaded=" | cut -d= -f2)"
+  [[ "$loaded_from_info" == "true" ]] && loaded=true
+  [[ "$loaded" != "true" ]] && state="unloaded"
+
+  if $verbose; then
+    last_log="-"
+    if [[ -n "$stdout_path" && -f "$stdout_path" ]]; then
+      last_log="$(tail -1 "$stdout_path" 2>/dev/null | cut -c1-50)"
+      [[ ${#last_log} -eq 50 ]] && last_log="${last_log}..."
+    fi
+    [[ -z "$last_log" ]] && last_log="-"
+
+    printf "%-18s %-8s %6s %6s %5s  %s\n" \
+      "$name" "$state" "$pid" "${runs:-0}" "${last_exit:--}" "$last_log"
+  else
+    status_icon="◌"
+    [[ "$state" == "running" ]] && status_icon="●"
+    [[ "$state" == "stopped" ]] && status_icon="○"
+    [[ "$last_exit" != "0" && "$last_exit" != "-" ]] && status_icon="✗"
+    if $linked; then
+      printf "%s %s (%s, %s runs)\n" "$status_icon" "$name" "$state" "${runs:-0}"
+    else
+      printf "⚠ %s (%s, unlinked)\n" "$name" "$state"
+    fi
+  fi
+done
+
+# Orphan detection: loaded but no source plist
+while IFS= read -r orphan_name; do
+  [[ -z "$orphan_name" ]] && continue
+  _in_set "$_seen_orphans" "$orphan_name" && continue
+  _seen_orphans="${_seen_orphans}${_seen_orphans:+$'\n'}${orphan_name}"
+  _in_set "$_plist_names" "$orphan_name" && continue
+
+  info="$(launcher_launchd_info "$orphan_name")"
+  pid="$(echo "$info" | grep "^pid=" | cut -d= -f2)"
+  runs="$(echo "$info" | grep "^runs=" | cut -d= -f2)"
+  last_exit="$(echo "$info" | grep "^last_exit=" | cut -d= -f2)"
+  state="$(echo "$info" | grep "^state=" | cut -d= -f2)"
+
+  if $verbose; then
+    printf "%-18s %-8s %6s %6s %5s  %s\n" \
+      "$orphan_name" "$state" "$pid" "${runs:-0}" "${last_exit:--}" "loaded, missing source plist"
+  else
+    printf "⚠ %s (loaded/%s, missing source plist)\n" "$orphan_name" "$state"
+  fi
+done < <(launcher_loaded_names)
