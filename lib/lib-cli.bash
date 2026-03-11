@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Shared CLI helpers for notes command dispatchers
+# Shared CLI helpers for subcommand dispatchers
 
 # Return success if token is a standard help flag.
-notes_cli_is_help() {
+cli_is_help() {
   local token="${1:-}"
   [[ "$token" == "-h" || "$token" == "--help" || "$token" == "help" ]]
 }
 
 # Print a comment block from a script file and exit.
-# Usage: notes_cli_usage_range <script-file> <start-line> <end-line> [exit-code]
-notes_cli_usage_range() {
+# Usage: cli_usage_range <script-file> <start-line> <end-line> [exit-code]
+cli_usage_range() {
   local file="$1"
   local start_line="$2"
   local end_line="$3"
@@ -26,8 +26,8 @@ notes_cli_usage_range() {
 }
 
 # Print initial comment block until first blank comment separator and exit.
-# Usage: notes_cli_usage_until_blank <script-file> [exit-code]
-notes_cli_usage_until_blank() {
+# Usage: cli_usage_until_blank <script-file> [exit-code]
+cli_usage_until_blank() {
   local file="$1"
   local code="${2:-1}"
 
@@ -38,25 +38,25 @@ notes_cli_usage_until_blank() {
 # --- Auto-help (source-time) ---
 # Capture caller and define usage(). Pass --auto to opt into help checking.
 #
-#   source "$SCRIPT_DIR/lib-cli.bash" --auto "$@"  # usage() + auto --help
-#   source "$SCRIPT_DIR/lib-cli.bash"               # usage() only
+#   source "path/to/lib-cli.bash" --auto "$@"  # usage() + auto --help
+#   source "path/to/lib-cli.bash"               # usage() only
 #
 # Scripts can override usage() after sourcing if they need custom behavior.
-_NOTES_CLI_SCRIPT="${BASH_SOURCE[1]}"
+_CLI_SCRIPT="${BASH_SOURCE[1]}"
 
 usage() {
-  awk 'NR>1 && /^$/{exit} NR>1{sub(/^# /, ""); sub(/^#/, ""); print}' "$_NOTES_CLI_SCRIPT"
+  awk 'NR>1 && /^$/{exit} NR>1{sub(/^# /, ""); sub(/^#/, ""); print}' "$_CLI_SCRIPT"
   exit "${1:-1}"
 }
 
 if [[ "${1:-}" == "--auto" ]]; then
   shift
-  notes_cli_is_help "${1:-}" && usage 0
+  cli_is_help "${1:-}" && usage 0
 fi
 
 # Resolve script directory, following symlinks.
-# Usage: dir=$(notes_cli_resolve_script_dir)
-notes_cli_resolve_script_dir() {
+# Usage: dir=$(cli_resolve_script_dir)
+cli_resolve_script_dir() {
   local source="${1:-${BASH_SOURCE[1]}}"
   while [[ -L "$source" ]]; do
     local dir
@@ -69,9 +69,9 @@ notes_cli_resolve_script_dir() {
 
 # Exec subcommand script if it exists/executable.
 # Callers pass raw "$@" (unshifted) - the function safely consumes the cmd.
-# Usage: notes_cli_exec_subcommand <base-dir> <prefix> <cmd> "$@"
-# Example: notes_cli_exec_subcommand "$SCRIPT_DIR" "notes-daily-" "$cmd" "$@"
-notes_cli_exec_subcommand() {
+# Usage: cli_exec_subcommand <base-dir> <prefix> <cmd> "$@"
+# Example: cli_exec_subcommand "$SCRIPT_DIR" "notes-daily-" "$cmd" "$@"
+cli_exec_subcommand() {
   local base_dir="$1"
   local prefix="$2"
   local cmd="$3"
@@ -86,7 +86,7 @@ notes_cli_exec_subcommand() {
 }
 
 # Return success when arg matches YYYY-MM-DD.
-notes_cli_is_date() {
+cli_is_date() {
   local value="${1:-}"
   [[ "$value" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
 }
