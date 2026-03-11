@@ -1,0 +1,90 @@
+# launcher
+
+Manage macOS launch agents from the command line.
+
+Create, link, load, and inspect `launchd` agents without touching XML by hand.
+
+## Install
+
+**npm**
+
+```sh
+npm i -g github:mracos/launcher
+```
+
+**zinit**
+
+```sh
+zinit ice sbin"bin/launcher"
+zinit light mracos/launcher
+```
+
+**Clone + PATH**
+
+```sh
+git clone https://github.com/mracos/launcher.git
+export PATH="$PWD/launcher/bin:$PATH"
+```
+
+## Usage
+
+```
+launcher ls [-v]                      List agents (verbose with -v)
+launcher info <name>                  Show agent details
+launcher logs <name> [-f]             Show agent logs (follow with -f)
+launcher new [-d dir] <name> <cmd> [interval]  Create an agent
+launcher rm <name>                    Remove an agent
+launcher show <name>                  Show agent plist
+launcher edit <name>                  Edit agent plist
+launcher link <name|--all>            Symlink to ~/Library/LaunchAgents
+launcher unlink <name|--all>          Remove symlink
+launcher load <name>                  Load agent
+launcher unload <name>                Unload agent
+launcher reload <name>                Reload agent
+launcher run <name>                   Run agent command manually
+```
+
+## Quick start
+
+```sh
+# Create an agent that runs every 5 minutes
+launcher new my-task 'echo "hello" >> /tmp/my-task.log' 300
+
+# Link it to ~/Library/LaunchAgents and load it
+launcher link my-task
+launcher load my-task
+
+# Check status
+launcher ls -v
+launcher info my-task
+launcher logs my-task -f
+```
+
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `LAUNCHER_PREFIX` | `br.com.mracos` | Label prefix for agents |
+| `LAUNCHER_DIR` | `~/Library/LaunchAgents` | Where plist files are stored |
+| `LAUNCHER_INSTALL_DIR` | `~/Library/LaunchAgents` | Where symlinks point (for dotfiles setups where source != install) |
+
+## Architecture
+
+Thin bash dispatcher (`bin/launcher`) with subcommand scripts in `lib/`. The launchd interaction is isolated in `lib/lib-launchd.bash`, making it possible to swap backends (e.g. systemd) without touching subcommands.
+
+**Tech:** Bash (3.2+ compatible), bats for testing, launchctl/PlistBuddy for macOS integration.
+
+## Testing
+
+```sh
+npm install
+npm test
+```
+
+## Design history
+
+See [docs/design.md](docs/design.md) for the original migration plan from the zsh plugin to standalone CLI.
+
+## License
+
+MIT
