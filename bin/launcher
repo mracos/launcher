@@ -33,18 +33,19 @@ while [[ -L "$SOURCE" ]]; do
   [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
-LIB_DIR="$SCRIPT_DIR/../../../lib/shell/launcher"
-source "$SCRIPT_DIR/../../../lib/shell/shared/lib-cli.bash"
+REPO_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
+LIB_DIR="$REPO_ROOT/lib/shell/launcher"
+source "$REPO_ROOT/lib/shell/shared/lib-cli.bash"
 
 usage() {
-  notes_cli_usage_until_blank "$0" "${1:-1}"
+  cli_usage_until_blank "$0" "${1:-1}"
 }
 
 cmd="${1:-}"
-notes_cli_is_help "$cmd" && usage 0
+cli_is_help "$cmd" && usage 0
 [[ -z "$cmd" ]] && usage 1
 
-notes_cli_exec_subcommand "$LIB_DIR" "launcher-" "$cmd" "$@" || {
+cli_exec_subcommand "$LIB_DIR" "launcher-" "$cmd" "$@" || {
   echo "Unknown command: $cmd"
   usage
 }
