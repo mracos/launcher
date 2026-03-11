@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Create a new launch agent
+# USAGE: launcher new [-d dir] <name> <cmd> [interval]
+
+set -euo pipefail
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib-cli.bash" --auto "$@"
+source "$SCRIPT_DIR/lib-plist.bash"
+
+dir="$LAUNCHER_DIR"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -d|--dir)
+      dir="$2"
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+name="${1:-}"
+cmd="${2:-}"
+interval="${3:-}"
+
+if [[ -z "$name" || -z "$cmd" ]]; then
+  usage
+fi
+
+bin="${dir}/${LAUNCHER_PREFIX}.${name}"
+plist="${dir}/${LAUNCHER_PREFIX}.${name}.plist"
+installed_bin="$(launcher_installed_bin "$name")"
+mkdir -p "$(dirname "$plist")"
+
+cat > "$bin" << SCRIPT
+#!/bin/bash
+# Launcher agent: ${name}
+
+if ! ${cmd} 2>&1; then
+  osascript -e 'display notification "${name} failed to start" with title "Launcher Error" sound name "Basso"'
+  exit 1
+fi
+SCRIPT
+chmod +x "$bin"
+
+cat > "$plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>${LAUNCHER_PREFIX}.${name}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>${installed_bin}</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+EOF
+
+if [[ -n "$interval" ]]; then
+  echo "  <key>StartInterval</key><integer>${interval}</integer>" >> "$plist"
+fi
+
+printf '%s\n%s\n' "</dict>" "</plist>" >> "$plist"
+
+echo "Created: $name"
+echo "Run 'launcher link $name' then 'launcher load $name'"
