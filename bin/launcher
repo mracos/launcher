@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# launcher - Manage macOS launch agents
+#
+# USAGE:
+#   launcher ls [-v]                      List agents (verbose with -v)
+#   launcher info <name>                  Show agent details
+#   launcher logs <name> [-f]             Show agent logs (follow with -f)
+#   launcher new [-d dir] <name> <cmd> [interval]  Create an agent
+#   launcher rm <name>                    Remove an agent
+#   launcher show <name>                  Show agent plist
+#   launcher edit <name>                  Edit agent plist
+#   launcher link <name|--all>            Symlink to ~/Library/LaunchAgents
+#   launcher unlink <name|--all>          Remove symlink
+#   launcher reload <name>                Reload agent
+#   launcher run <name>                   Run agent command manually
+#   launcher load <name>                  Load agent
+#   launcher unload <name>                Unload agent
+#
+# CONFIGURATION:
+#   LAUNCHER_PREFIX    Label prefix (default: br.com.mracos)
+#   LAUNCHER_DIR       Plist storage dir (default: ~/Library/LaunchAgents,
+#                      or $DOTFILES_REPO/files/mac/Library/LaunchAgents)
+#   LAUNCHER_INSTALL_DIR  Symlink target (default: ~/Library/LaunchAgents)
+
+set -euo pipefail
+
+# Resolve symlinks to find real script location
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE" ]]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/../../../lib/shell/launcher"
+source "$LIB_DIR/lib-cli.bash"
+
+usage() {
+  notes_cli_usage_until_blank "$0" "${1:-1}"
+}
+
+cmd="${1:-}"
+notes_cli_is_help "$cmd" && usage 0
+[[ -z "$cmd" ]] && usage 1
+
+notes_cli_exec_subcommand "$LIB_DIR" "launcher-" "$cmd" "$@" || {
+  echo "Unknown command: $cmd"
+  usage
+}
