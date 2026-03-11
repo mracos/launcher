@@ -9,9 +9,9 @@ setup() {
   mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
 }
 
-LOAD_BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-load"
-UNLOAD_BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-unload"
-RELOAD_BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-reload"
+LOAD_BIN="$PROJECT_ROOT/lib/launcher-load"
+UNLOAD_BIN="$PROJECT_ROOT/lib/launcher-unload"
+RELOAD_BIN="$PROJECT_ROOT/lib/launcher-reload"
 
 @test "launcher-load fails for unlinked agent" {
   run "$LOAD_BIN" nonexistent

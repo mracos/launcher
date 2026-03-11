@@ -8,7 +8,7 @@ setup() {
   mkdir -p "$LAUNCHER_DIR"
 }
 
-BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-run"
+BIN="$PROJECT_ROOT/lib/launcher-run"
 
 @test "launcher-run fails without args" {
   run "$BIN"

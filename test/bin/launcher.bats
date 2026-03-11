@@ -2,7 +2,7 @@
 
 load "$PROJECT_ROOT/test/test_helper"
 
-BIN="$PROJECT_ROOT/files/shell/bin/launcher"
+BIN="$PROJECT_ROOT/bin/launcher"
 
 @test "launcher exists and is executable" {
   assert [ -f "$BIN" ]

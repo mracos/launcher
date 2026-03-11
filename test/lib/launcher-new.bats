@@ -9,7 +9,7 @@ setup() {
   mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
 }
 
-BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-new"
+BIN="$PROJECT_ROOT/lib/launcher-new"
 
 @test "launcher-new fails without args" {
   run "$BIN"

@@ -20,7 +20,7 @@ SCRIPT
   export PATH="$fake_bin:$PATH"
 }
 
-BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-ls"
+BIN="$PROJECT_ROOT/lib/launcher-ls"
 
 @test "launcher-ls shows no agents when empty" {
   run "$BIN"
