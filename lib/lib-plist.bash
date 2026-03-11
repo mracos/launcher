@@ -3,13 +3,7 @@
 
 LAUNCHER_PREFIX="${LAUNCHER_PREFIX:-br.com.mracos}"
 
-if [[ -z "${LAUNCHER_DIR:-}" ]]; then
-  if [[ -n "${DOTFILES_REPO:-}" ]]; then
-    LAUNCHER_DIR="$DOTFILES_REPO/files/mac/Library/LaunchAgents"
-  else
-    LAUNCHER_DIR="$HOME/Library/LaunchAgents"
-  fi
-fi
+LAUNCHER_DIR="${LAUNCHER_DIR:-$HOME/Library/LaunchAgents}"
 
 LAUNCHER_INSTALL_DIR="${LAUNCHER_INSTALL_DIR:-$HOME/Library/LaunchAgents}"
 
