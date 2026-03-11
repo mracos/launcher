@@ -8,7 +8,7 @@ setup() {
   mkdir -p "$LAUNCHER_DIR"
 }
 
-BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-rm"
+BIN="$PROJECT_ROOT/lib/launcher-rm"
 
 @test "launcher-rm fails for non-existent agent" {
   run "$BIN" nonexistent

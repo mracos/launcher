@@ -9,7 +9,7 @@ setup() {
   mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
 }
 
-BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-show"
+BIN="$PROJECT_ROOT/lib/launcher-show"
 
 @test "launcher-show fails without args" {
   run "$BIN"

@@ -9,8 +9,8 @@ setup() {
   mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
 }
 
-LINK_BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-link"
-UNLINK_BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-unlink"
+LINK_BIN="$PROJECT_ROOT/lib/launcher-link"
+UNLINK_BIN="$PROJECT_ROOT/lib/launcher-unlink"
 
 @test "launcher-link fails without args" {
   run "$LINK_BIN"

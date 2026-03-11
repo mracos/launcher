@@ -8,7 +8,7 @@ setup() {
   mkdir -p "$LAUNCHER_DIR"
 }
 
-BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-edit"
+BIN="$PROJECT_ROOT/lib/launcher-edit"
 
 @test "launcher-edit fails without args" {
   run "$BIN"

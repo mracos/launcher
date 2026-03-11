@@ -18,8 +18,7 @@
 #
 # CONFIGURATION:
 #   LAUNCHER_PREFIX    Label prefix (default: br.com.mracos)
-#   LAUNCHER_DIR       Plist storage dir (default: ~/Library/LaunchAgents,
-#                      or $DOTFILES_REPO/files/mac/Library/LaunchAgents)
+#   LAUNCHER_DIR       Plist storage dir (default: ~/Library/LaunchAgents)
 #   LAUNCHER_INSTALL_DIR  Symlink target (default: ~/Library/LaunchAgents)
 
 set -euo pipefail
@@ -33,9 +32,9 @@ while [[ -L "$SOURCE" ]]; do
   [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
-REPO_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
-LIB_DIR="$REPO_ROOT/lib/shell/launcher"
-source "$REPO_ROOT/lib/shell/shared/lib-cli.bash"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+LIB_DIR="$REPO_ROOT/lib"
+source "$LIB_DIR/lib-cli.bash"
 
 usage() {
   cli_usage_until_blank "$0" "${1:-1}"

@@ -9,7 +9,7 @@ setup() {
   mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
 }
 
-BIN="$PROJECT_ROOT/lib/shell/launcher/launcher-logs"
+BIN="$PROJECT_ROOT/lib/launcher-logs"
 
 @test "launcher-logs fails without args" {
   run "$BIN"

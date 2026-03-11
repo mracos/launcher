@@ -13,8 +13,8 @@ setup() {
   mkdir -p "$fake_bin"
   export PATH="$fake_bin:$PATH"
 
-  source "$PROJECT_ROOT/lib/shell/launcher/lib-plist.bash"
-  source "$PROJECT_ROOT/lib/shell/launcher/lib-launchd.bash"
+  source "$PROJECT_ROOT/lib/lib-plist.bash"
+  source "$PROJECT_ROOT/lib/lib-launchd.bash"
 }
 
 create_fake_launchctl() {
