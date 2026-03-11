@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Show agent details (runs, exit, logs)
+# USAGE: launcher info <name>
+
+set -euo pipefail
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib-cli.bash" --auto "$@"
+source "$SCRIPT_DIR/lib-plist.bash"
+source "$SCRIPT_DIR/lib-launchd.bash"
+
+name="${1:-}"
+[[ -z "$name" ]] && usage
+
+plist="$(launcher_plist "$name")"
+if [[ ! -f "$plist" ]]; then
+  echo "Not found: $name"
+  exit 1
+fi
+
+installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
+linked="no"
+[[ -L "$installed_plist" ]] && linked="yes"
+
+echo "Agent: $name"
+echo "Label: ${LAUNCHER_PREFIX}.${name}"
+echo "Plist: $plist"
+echo "Linked: $linked"
+echo ""
+
+if [[ "$linked" == "no" ]]; then
+  echo "Run 'launcher link $name' to enable"
+  exit 0
+fi
+
+info="$(launcher_launchd_info "$name")"
+pid="$(echo "$info" | grep "^pid=" | cut -d= -f2)"
+state="$(echo "$info" | grep "^state=" | cut -d= -f2)"
+runs="$(echo "$info" | grep "^runs=" | cut -d= -f2)"
+last_exit="$(echo "$info" | grep "^last_exit=" | cut -d= -f2)"
+interval="$(echo "$info" | grep "^interval=" | cut -d= -f2)"
+stdout_path="$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)"
+stderr_path="$(echo "$info" | grep "^stderr_path=" | cut -d= -f2-)"
+
+echo "Status: $state"
+[[ "$pid" != "-" ]] && echo "PID: $pid"
+echo "Runs: ${runs:-0}"
+echo "Last exit: ${last_exit:--}"
+[[ "$interval" != "-" ]] && echo "Interval: $interval"
+echo ""
+
+if [[ -n "$stdout_path" ]]; then
+  echo "Stdout: $stdout_path"
+fi
+if [[ -n "$stderr_path" && "$stderr_path" != "$stdout_path" ]]; then
+  echo "Stderr: $stderr_path"
+fi
+
+if [[ -n "$stdout_path" && -f "$stdout_path" ]]; then
+  echo ""
+  echo "Last 5 log lines:"
+  tail -5 "$stdout_path" 2>/dev/null | sed 's/^/  /'
+fi
