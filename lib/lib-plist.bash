@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Plist path helpers and configuration for launcher
 
-LAUNCHER_PREFIX="${LAUNCHER_PREFIX:-br.com.mracos}"
+LAUNCHER_PREFIX="${LAUNCHER_PREFIX:-local.launcher}"
 
 LAUNCHER_DIR="${LAUNCHER_DIR:-$HOME/Library/LaunchAgents}"
 
