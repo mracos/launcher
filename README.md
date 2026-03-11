@@ -15,7 +15,7 @@ npm i -g github:mracos/launcher
 **zinit**
 
 ```sh
-zinit ice sbin"bin/launcher"
+zinit ice sbin"bin/launcher;bin/launcher-run"
 zinit light mracos/launcher
 ```
 
@@ -81,9 +81,9 @@ npm install
 npm test
 ```
 
-## Design history
+## Design
 
-See [docs/design.md](docs/design.md) for the original migration plan from the zsh plugin to standalone CLI.
+Started as a zsh plugin in [dotfiles](https://github.com/mracos/dotfiles), extracted to standalone bash CLI. The `lib-launchd.bash` split makes backend-swapping natural - subcommands talk to plist helpers, not launchctl directly. Future: Linux systemd, Windows Task Scheduler.
 
 ## License
 
