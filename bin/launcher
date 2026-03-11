@@ -34,7 +34,7 @@ while [[ -L "$SOURCE" ]]; do
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 LIB_DIR="$SCRIPT_DIR/../../../lib/shell/launcher"
-source "$LIB_DIR/lib-cli.bash"
+source "$SCRIPT_DIR/../../../lib/shell/shared/lib-cli.bash"
 
 usage() {
   notes_cli_usage_until_blank "$0" "${1:-1}"
