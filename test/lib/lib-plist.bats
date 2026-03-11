@@ -28,11 +28,11 @@ setup() {
   assert_output "$BATS_TEST_TMPDIR/installed/com.test.myagent"
 }
 
-@test "LAUNCHER_PREFIX defaults to br.com.mracos" {
+@test "LAUNCHER_PREFIX defaults to local.launcher" {
   unset LAUNCHER_PREFIX
   source "$PROJECT_ROOT/lib/lib-plist.bash"
   run launcher_plist "test"
-  assert_output --partial "br.com.mracos.test.plist"
+  assert_output --partial "local.launcher.test.plist"
 }
 
 @test "LAUNCHER_DIR defaults to ~/Library/LaunchAgents" {

@@ -64,7 +64,7 @@ launcher logs my-task -f
 
 | Variable | Default | Description |
 |---|---|---|
-| `LAUNCHER_PREFIX` | `br.com.mracos` | Label prefix for agents |
+| `LAUNCHER_PREFIX` | `local.launcher` | Label prefix for agents |
 | `LAUNCHER_DIR` | `~/Library/LaunchAgents` | Where plist files are stored |
 | `LAUNCHER_INSTALL_DIR` | `~/Library/LaunchAgents` | Where symlinks point (for dotfiles setups where source != install) |
 
