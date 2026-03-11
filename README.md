@@ -15,7 +15,11 @@ npm i -g github:mracos/launcher
 **zinit**
 
 ```sh
-zinit ice sbin"bin/launcher" sbin"bin/launcher-run"
+# as command (in a `zinit for as"command"` block)
+pick"bin/*" mracos/launcher
+
+# or standalone
+zinit ice as"command" pick"bin/*"
 zinit light mracos/launcher
 ```
 
@@ -67,6 +71,15 @@ launcher logs my-task -f
 | `LAUNCHER_PREFIX` | `local.launcher` | Label prefix for agents |
 | `LAUNCHER_DIR` | `~/Library/LaunchAgents` | Where plist files are stored |
 | `LAUNCHER_INSTALL_DIR` | `~/Library/LaunchAgents` | Where symlinks point (for dotfiles setups where source != install) |
+
+For dotfiles setups where plists are tracked in git:
+
+```sh
+export LAUNCHER_PREFIX="br.com.myname"
+export LAUNCHER_DIR="$DOTFILES_REPO/files/mac/Library/LaunchAgents"
+```
+
+This stores plists in your dotfiles repo. Use `launcher link` to symlink them to `~/Library/LaunchAgents`.
 
 ## Architecture
 
