@@ -15,7 +15,7 @@ npm i -g github:mracos/launcher
 **zinit**
 
 ```sh
-zinit ice sbin"bin/launcher;bin/launcher-run"
+zinit ice sbin"bin/launcher" sbin"bin/launcher-run"
 zinit light mracos/launcher
 ```
 
