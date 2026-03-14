@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Check agents for common issues and optionally fix them
+# USAGE: launcher doctor [--fix]
+
+set -euo pipefail
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib-cli.bash" --auto "$@"
+source "$SCRIPT_DIR/lib-plist.bash"
+
+fix=false
+[[ "${1:-}" == "--fix" ]] && fix=true
+
+launcher_run="$(cd -P "$SCRIPT_DIR/../bin" && pwd)/launcher-run"
+issues=0
+fixed=0
+
+check() { printf "  %-6s %s\n" "$1" "$2"; }
+
+for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
+  [[ -f "$f" ]] || continue
+  name="$(basename "$f" .plist)"
+  name="${name#${LAUNCHER_PREFIX}.}"
+  bin="$(launcher_bin "$name")"
+
+  agent_issues=0
+
+  # Check: wrapper script exists
+  if [[ ! -f "$bin" ]]; then
+    [[ $agent_issues -eq 0 ]] && echo "$name:"
+    check "ERROR" "wrapper script missing: $bin"
+    agent_issues=$((agent_issues + 1))
+    issues=$((issues + 1))
+    continue
+  fi
+
+  # Check: wrapper script is executable
+  if [[ ! -x "$bin" ]]; then
+    [[ $agent_issues -eq 0 ]] && echo "$name:"
+    check "ERROR" "wrapper script not executable: $bin"
+    if $fix; then
+      chmod +x "$bin"
+      check "FIXED" "made executable"
+      fixed=$((fixed + 1))
+    fi
+    agent_issues=$((agent_issues + 1))
+    issues=$((issues + 1))
+  fi
+
+  # Check: launcher-run path in wrapper script
+  old_run="$(grep -oE '/[^ ]*launcher-run' "$bin" 2>/dev/null || true)"
+  if [[ -n "$old_run" && "$old_run" != "$launcher_run" ]]; then
+    [[ $agent_issues -eq 0 ]] && echo "$name:"
+    check "ERROR" "stale launcher-run path: $old_run"
+    if $fix; then
+      sed -i '' "s|${old_run}|${launcher_run}|g" "$bin"
+      check "FIXED" "updated to: $launcher_run"
+      fixed=$((fixed + 1))
+    fi
+    agent_issues=$((agent_issues + 1))
+    issues=$((issues + 1))
+  elif [[ -n "$old_run" && ! -x "$old_run" ]]; then
+    [[ $agent_issues -eq 0 ]] && echo "$name:"
+    check "ERROR" "launcher-run not found: $old_run"
+    if $fix; then
+      sed -i '' "s|${old_run}|${launcher_run}|g" "$bin"
+      check "FIXED" "updated to: $launcher_run"
+      fixed=$((fixed + 1))
+    fi
+    agent_issues=$((agent_issues + 1))
+    issues=$((issues + 1))
+  fi
+
+  # Check: commands in wrapper resolve (absolute paths, skip comments and shebang)
+  while IFS= read -r line; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    while IFS= read -r cmd_path; do
+      [[ -z "$cmd_path" ]] && continue
+      [[ "$cmd_path" == *launcher-run* ]] && continue
+      if [[ ! -x "$cmd_path" ]]; then
+        [[ $agent_issues -eq 0 ]] && echo "$name:"
+        check "WARN" "command not found: $cmd_path"
+        agent_issues=$((agent_issues + 1))
+        issues=$((issues + 1))
+      fi
+    done < <(echo "$line" | grep -oE '/[^ "]+' || true)
+  done < "$bin"
+done
+
+if [[ $issues -eq 0 ]]; then
+  echo "All agents healthy"
+else
+  echo ""
+  echo "$issues issue(s) found"
+  if $fix; then
+    echo "$fixed fixed"
+  else
+    echo "Run 'launcher doctor --fix' to fix"
+  fi
+fi
+
+[[ $issues -eq 0 || ($fix && $fixed -eq $issues) ]]

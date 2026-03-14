@@ -38,6 +38,15 @@ BIN="$PROJECT_ROOT/lib/launcher-new"
   assert_output "#!/bin/bash"
 }
 
+@test "launcher-new wrapper uses launcher-run from repo bin/" {
+  run "$BIN" testjob 'echo hello'
+  assert_success
+
+  run cat "$LAUNCHER_DIR/com.test.testjob"
+  assert_output --partial "launcher-run"
+  assert_output --partial "$PROJECT_ROOT/bin/launcher-run"
+}
+
 @test "launcher-new creates valid plist with label and RunAtLoad" {
   run "$BIN" testjob 'echo hello'
   assert_success
