@@ -32,16 +32,14 @@ fi
 bin="${dir}/${LAUNCHER_PREFIX}.${name}"
 plist="${dir}/${LAUNCHER_PREFIX}.${name}.plist"
 installed_bin="$(launcher_installed_bin "$name")"
+launcher_run="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/../bin" && pwd)/launcher-run"
 mkdir -p "$(dirname "$plist")"
 
 cat > "$bin" << SCRIPT
 #!/bin/bash
 # Launcher agent: ${name}
 
-if ! ${cmd} 2>&1; then
-  osascript -e 'display notification "${name} failed to start" with title "Launcher Error" sound name "Basso"'
-  exit 1
-fi
+exec ${launcher_run} ${name} ${cmd}
 SCRIPT
 chmod +x "$bin"
 
