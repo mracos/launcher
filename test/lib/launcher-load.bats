@@ -44,6 +44,30 @@ SCRIPT
   assert_output --partial "Not linked"
 }
 
+@test "launcher-unload cleans up dangling symlinks" {
+  fake_bin="$BATS_TEST_TMPDIR/fake-bin"
+  mkdir -p "$fake_bin"
+  cat > "$fake_bin/launchctl" <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "list" ]]; then
+  echo "PID	Status	Label"
+fi
+exit 0
+SCRIPT
+  chmod +x "$fake_bin/launchctl"
+  export PATH="$fake_bin:$PATH"
+
+  # Create dangling symlinks (source doesn't exist)
+  ln -s "$BATS_TEST_TMPDIR/gone/com.test.old.plist" "$LAUNCHER_INSTALL_DIR/com.test.old.plist"
+  ln -s "$BATS_TEST_TMPDIR/gone/com.test.old" "$LAUNCHER_INSTALL_DIR/com.test.old"
+
+  run "$UNLOAD_BIN" old
+  assert_success
+  assert_output --partial "Unloaded (dangling): old"
+  assert [ ! -L "$LAUNCHER_INSTALL_DIR/com.test.old.plist" ]
+  assert [ ! -L "$LAUNCHER_INSTALL_DIR/com.test.old" ]
+}
+
 @test "launcher-unload succeeds for loaded but unlinked agent" {
   fake_bin="$BATS_TEST_TMPDIR/fake-bin"
   mkdir -p "$fake_bin"
