@@ -60,6 +60,9 @@ if [[ -n "$interval" ]]; then
   echo "  <key>StartInterval</key><integer>${interval}</integer>" >> "$plist"
 fi
 
+echo "  <key>StandardOutPath</key><string>/tmp/${name}.log</string>" >> "$plist"
+echo "  <key>StandardErrorPath</key><string>/tmp/${name}.log</string>" >> "$plist"
+
 printf '%s\n%s\n' "</dict>" "</plist>" >> "$plist"
 
 echo "Created: $name"

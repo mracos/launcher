@@ -13,6 +13,7 @@ source "$SCRIPT_DIR/lib-launchd.bash"
 
 name="${1:-}"
 [[ -z "$name" ]] && usage
+default_log_path="/tmp/${name}.log"
 
 follow=false
 shift || true
@@ -34,7 +35,7 @@ fi
 
 if [[ -z "$stdout_path" ]]; then
   echo "No log path configured for $name"
-  echo "Add StandardOutPath/StandardErrorPath to the plist"
+  echo "Add StandardOutPath/StandardErrorPath to the plist (default: ${default_log_path})"
   exit 1
 fi
 
