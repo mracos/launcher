@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Remove an agent (unload, delete plist and bin)
 # USAGE: launcher rm <name>
+#
+# COMPLETE:
+#   1 _launcher_agent_names
 
 set -euo pipefail
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

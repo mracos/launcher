@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Reload an agent
 # USAGE: launcher reload <name>
+#
+# COMPLETE:
+#   1 _launcher_agent_names
 
 set -euo pipefail
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

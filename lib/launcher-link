@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Symlink agent to ~/Library/LaunchAgents
 # USAGE: launcher link <name|--all>
+#
+# COMPLETE:
+#   1 _launcher_agent_names_or_all
 
 set -euo pipefail
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,0 +1,31 @@
+#!/usr/bin/env zsh
+# Zsh completion helpers for launcher CLI
+# Auto-sourced by the generic completions plugin when COMPLETE references them
+
+_launcher_agent_names() {
+  local -a names=()
+  local f name
+
+  for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist(N); do
+    [[ -f "$f" ]] || continue
+    name="${f:t:r}"
+    name="${name#${LAUNCHER_PREFIX}.}"
+    [[ -n "$name" ]] && names+=("$name")
+  done
+
+  (( ${#names} )) && _describe 'agent' names
+}
+
+_launcher_agent_names_or_all() {
+  local -a values=(--all)
+  local f name
+
+  for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist(N); do
+    [[ -f "$f" ]] || continue
+    name="${f:t:r}"
+    name="${name#${LAUNCHER_PREFIX}.}"
+    [[ -n "$name" ]] && values+=("$name")
+  done
+
+  _describe 'agent' values
+}
