@@ -68,6 +68,63 @@ SCRIPT
   assert [ ! -L "$LAUNCHER_INSTALL_DIR/com.test.old" ]
 }
 
+@test "launcher-load --all loads all linked agents" {
+  fake_bin="$BATS_TEST_TMPDIR/fake-bin"
+  mkdir -p "$fake_bin"
+  cat > "$fake_bin/launchctl" <<'SCRIPT'
+#!/bin/bash
+exit 0
+SCRIPT
+  chmod +x "$fake_bin/launchctl"
+  export PATH="$fake_bin:$PATH"
+
+  echo "<plist/>" > "$LAUNCHER_INSTALL_DIR/com.test.one.plist"
+  echo "<plist/>" > "$LAUNCHER_INSTALL_DIR/com.test.two.plist"
+
+  run "$LOAD_BIN" --all
+  assert_success
+  assert_output --partial "Loaded: one"
+  assert_output --partial "Loaded: two"
+}
+
+@test "launcher-unload --all unloads all linked agents" {
+  fake_bin="$BATS_TEST_TMPDIR/fake-bin"
+  mkdir -p "$fake_bin"
+  cat > "$fake_bin/launchctl" <<'SCRIPT'
+#!/bin/bash
+exit 0
+SCRIPT
+  chmod +x "$fake_bin/launchctl"
+  export PATH="$fake_bin:$PATH"
+
+  echo "<plist/>" > "$LAUNCHER_INSTALL_DIR/com.test.one.plist"
+  echo "<plist/>" > "$LAUNCHER_INSTALL_DIR/com.test.two.plist"
+
+  run "$UNLOAD_BIN" --all
+  assert_success
+  assert_output --partial "Unloaded: one"
+  assert_output --partial "Unloaded: two"
+}
+
+@test "launcher-reload --all reloads all linked agents" {
+  fake_bin="$BATS_TEST_TMPDIR/fake-bin"
+  mkdir -p "$fake_bin"
+  cat > "$fake_bin/launchctl" <<'SCRIPT'
+#!/bin/bash
+exit 0
+SCRIPT
+  chmod +x "$fake_bin/launchctl"
+  export PATH="$fake_bin:$PATH"
+
+  echo "<plist/>" > "$LAUNCHER_INSTALL_DIR/com.test.one.plist"
+  echo "<plist/>" > "$LAUNCHER_INSTALL_DIR/com.test.two.plist"
+
+  run "$RELOAD_BIN" --all
+  assert_success
+  assert_output --partial "Reloaded: one"
+  assert_output --partial "Reloaded: two"
+}
+
 @test "launcher-unload succeeds for loaded but unlinked agent" {
   fake_bin="$BATS_TEST_TMPDIR/fake-bin"
   mkdir -p "$fake_bin"

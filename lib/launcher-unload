@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Unload an agent
-# USAGE: launcher unload <name>
+# USAGE: launcher unload <name|--all>
 #
 # COMPLETE:
-#   1 _launcher_agent_names
+#   1 _launcher_agent_names_or_all
 
 set -euo pipefail
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,41 +11,56 @@ source "$SCRIPT_DIR/lib-cli.bash" --auto "$@"
 source "$SCRIPT_DIR/lib-plist.bash"
 source "$SCRIPT_DIR/lib-launchd.bash"
 
+_unload_one() {
+  local name="$1"
+  local installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
+
+  # If plist is linked, unload via plist
+  if [[ -f "$installed_plist" ]]; then
+    launchctl unload "$installed_plist" 2>/dev/null
+    echo "Unloaded: $name"
+    return 0
+  fi
+
+  local label="${LAUNCHER_PREFIX}.${name}"
+  local uid
+  uid="$(id -u)"
+
+  # Dangling symlink: source was renamed/deleted but symlink remains
+  if [[ -L "$installed_plist" ]]; then
+    launchctl bootout "gui/${uid}/${label}" 2>/dev/null || launchctl remove "$label" 2>/dev/null || true
+    rm "$installed_plist"
+    # Also remove the runner symlink if dangling
+    local runner="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}"
+    [[ -L "$runner" && ! -e "$runner" ]] && rm "$runner"
+    echo "Unloaded (dangling): $name"
+    return 0
+  fi
+
+  # Fallback: bootout orphaned loaded job
+  if launcher_loaded_names | grep -Fxq "$name"; then
+    if launchctl bootout "gui/${uid}/${label}" 2>/dev/null || launchctl remove "$label" 2>/dev/null; then
+      echo "Unloaded: $name"
+      return 0
+    fi
+    echo "Failed to unload loaded job: $name"
+    return 1
+  fi
+
+  echo "Not linked: $name"
+  return 1
+}
+
 name="${1:-}"
 [[ -z "$name" ]] && usage
 
-installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
-
-# If plist is linked, unload via plist
-if [[ -f "$installed_plist" ]]; then
-  launchctl unload "$installed_plist" 2>/dev/null
-  echo "Unloaded: $name"
-  exit 0
+if [[ "$name" == "--all" ]]; then
+  for f in "$LAUNCHER_INSTALL_DIR"/${LAUNCHER_PREFIX}.*.plist; do
+    [[ -f "$f" || -L "$f" ]] || continue
+    n="$(basename "$f" .plist)"
+    n="${n#${LAUNCHER_PREFIX}.}"
+    _unload_one "$n"
+  done
+else
+  _unload_one "$name" || exit 1
 fi
-
-label="${LAUNCHER_PREFIX}.${name}"
-uid="$(id -u)"
-
-# Dangling symlink: source was renamed/deleted but symlink remains
-if [[ -L "$installed_plist" ]]; then
-  launchctl bootout "gui/${uid}/${label}" 2>/dev/null || launchctl remove "$label" 2>/dev/null || true
-  rm "$installed_plist"
-  # Also remove the runner symlink if dangling
-  runner="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}"
-  [[ -L "$runner" && ! -e "$runner" ]] && rm "$runner"
-  echo "Unloaded (dangling): $name"
-  exit 0
-fi
-
-# Fallback: bootout orphaned loaded job
-if launcher_loaded_names | grep -Fxq "$name"; then
-  if launchctl bootout "gui/${uid}/${label}" 2>/dev/null || launchctl remove "$label" 2>/dev/null; then
-    echo "Unloaded: $name"
-    exit 0
-  fi
-  echo "Failed to unload loaded job: $name"
-  exit 1
-fi
-
-echo "Not linked: $name"
-exit 1
