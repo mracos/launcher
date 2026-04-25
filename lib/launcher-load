@@ -1,23 +1,38 @@
 #!/usr/bin/env bash
 # Load an agent
-# USAGE: launcher load <name>
+# USAGE: launcher load <name|--all>
 #
 # COMPLETE:
-#   1 _launcher_agent_names
+#   1 _launcher_agent_names_or_all
 
 set -euo pipefail
 SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib-cli.bash" --auto "$@"
 source "$SCRIPT_DIR/lib-plist.bash"
 
+_load_one() {
+  local name="$1"
+  local installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
+
+  if [[ ! -f "$installed_plist" ]]; then
+    echo "Not linked: $name (run 'launcher link $name' first)"
+    return 1
+  fi
+
+  launchctl load "$installed_plist" 2>/dev/null
+  echo "Loaded: $name"
+}
+
 name="${1:-}"
 [[ -z "$name" ]] && usage
 
-installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
-if [[ ! -f "$installed_plist" ]]; then
-  echo "Not linked: $name (run 'launcher link $name' first)"
-  exit 1
+if [[ "$name" == "--all" ]]; then
+  for f in "$LAUNCHER_INSTALL_DIR"/${LAUNCHER_PREFIX}.*.plist; do
+    [[ -f "$f" ]] || continue
+    n="$(basename "$f" .plist)"
+    n="${n#${LAUNCHER_PREFIX}.}"
+    _load_one "$n"
+  done
+else
+  _load_one "$name" || exit 1
 fi
-
-launchctl load "$installed_plist" 2>/dev/null
-echo "Loaded: $name"
