@@ -40,7 +40,7 @@ setup() {
 }
 
 @test "launcher name-taking subcommands advertise COMPLETE metadata" {
-  run rg -n '^# COMPLETE:|^#   1 _launcher_agent_names(_or_all)?$' \
+  run grep -En '^# COMPLETE:|^#   1 _launcher_agent_names(_or_all)?$' \
     "$PROJECT_ROOT/lib/launcher-logs" \
     "$PROJECT_ROOT/lib/launcher-info" \
     "$PROJECT_ROOT/lib/launcher-show" \
