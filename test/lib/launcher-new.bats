@@ -57,13 +57,13 @@ BIN="$PROJECT_ROOT/lib/launcher-new"
   assert_output --partial "<key>RunAtLoad</key><true/>"
 }
 
-@test "launcher-new configures merged stdout and stderr log paths" {
+@test "launcher-new does not configure file log paths by default" {
   run "$BIN" testjob 'echo hello'
   assert_success
 
   run cat "$LAUNCHER_DIR/com.test.testjob.plist"
-  assert_output --partial "<key>StandardOutPath</key><string>/tmp/testjob.log</string>"
-  assert_output --partial "<key>StandardErrorPath</key><string>/tmp/testjob.log</string>"
+  refute_output --partial "StandardOutPath"
+  refute_output --partial "StandardErrorPath"
 }
 
 @test "launcher-new with interval adds StartInterval" {
