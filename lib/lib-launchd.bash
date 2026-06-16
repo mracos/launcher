@@ -46,6 +46,8 @@ launcher_launchd_info() {
     loaded="true"
     runs=$(echo "$print_info" | grep "^	runs = " | awk '{print $3}')
     last_exit=$(echo "$print_info" | grep "^	last exit code = " | awk '{print $5}')
+    # launchctl renders "(never exited)" for jobs that never ran — normalize to "-"
+    [[ "$last_exit" == "(never" ]] && last_exit="-"
     stdout_path=$(echo "$print_info" | grep "^	stdout path = " | sed 's/.*stdout path = //')
     stderr_path=$(echo "$print_info" | grep "^	stderr path = " | sed 's/.*stderr path = //')
     interval=$(echo "$print_info" | grep "^	run interval = " | sed 's/.*run interval = //' | sed 's/ seconds/s/')

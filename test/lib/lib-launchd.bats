@@ -98,3 +98,31 @@ SCRIPT
   assert_line "state=running"
   assert_line "pid=123"
 }
+
+@test "launcher_launchd_info normalizes '(never exited)' to '-'" {
+  cat > "$fake_bin/launchctl" <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "list" ]]; then
+  cat <<'OUT'
+PID	Status	Label
+-	0	com.test.pending
+OUT
+  exit 0
+fi
+if [[ "$1" == "print" ]]; then
+  cat <<'OUT'
+	runs = 0
+	last exit code = (never exited)
+	state = waiting
+OUT
+  exit 0
+fi
+exit 1
+SCRIPT
+  chmod +x "$fake_bin/launchctl"
+
+  run launcher_launchd_info "pending"
+  assert_success
+  assert_line "runs=0"
+  assert_line "last_exit=-"
+}
