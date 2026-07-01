@@ -6,6 +6,7 @@ setup() {
   export LAUNCHER_PREFIX="com.test"
   export LAUNCHER_DIR="$BATS_TEST_TMPDIR/agents"
   export LAUNCHER_INSTALL_DIR="$BATS_TEST_TMPDIR/installed"
+  export LAUNCHER_LOG_DIR="$BATS_TEST_TMPDIR/logs"
   mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
 }
 
@@ -41,5 +42,5 @@ EOF
   run "$BIN" legacy
   assert_failure
   assert_output --partial "No log path configured for legacy"
-  assert_output --partial "default: /tmp/legacy.log"
+  assert_output --partial "Default location: $LAUNCHER_LOG_DIR/legacy.log"
 }

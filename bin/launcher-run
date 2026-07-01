@@ -1,15 +1,16 @@
 #!/bin/bash
-# launcher-run - Wrapper for launchd agents with failure notifications
+# launcher-run - Wrapper for launchd agents
 #
 # USAGE: launcher-run [--no-notify] <name> <command> [args...]
 #
-# Runs the command and displays a macOS notification on failure.
-# Used by launchd agent wrapper scripts for consistent error handling.
+# Captures stdout/stderr to ~/Library/Logs/launcher/<name>.log (append-only)
+# and tees to stdout so interactive callers still see output. Displays a
+# macOS notification on failure unless --no-notify is passed.
 #
 # OPTIONS:
 #   --no-notify  Skip failure notification (for scripts with their own)
 
-set -euo pipefail
+set -u
 
 notify=true
 if [[ "${1:-}" == "--no-notify" ]]; then
@@ -20,9 +21,23 @@ fi
 name="$1"
 shift
 
-if ! "$@" 2>&1; then
+log_dir="${LAUNCHER_LOG_DIR:-$HOME/Library/Logs/launcher}"
+log_file="$log_dir/${name}.log"
+mkdir -p "$log_dir"
+
+{
+  printf -- '--- %s %s start (pid %d)\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$name" "$$"
+  "$@" 2>&1
+  rc=$?
+  printf -- '--- %s %s exit=%d\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$name" "$rc"
+  exit "$rc"
+} | tee -a "$log_file"
+
+rc="${PIPESTATUS[0]}"
+
+if [[ "$rc" -ne 0 ]]; then
   if [[ "$notify" == true ]]; then
     osascript -e "display notification \"$name failed\" with title \"Launcher Error\" sound name \"Basso\""
   fi
-  exit 1
+  exit "$rc"
 fi

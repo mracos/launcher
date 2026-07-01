@@ -13,7 +13,7 @@ source "$SCRIPT_DIR/lib-launchd.bash"
 
 name="${1:-}"
 [[ -z "$name" ]] && usage
-default_log_path="/tmp/${name}.log"
+default_log_path="${LAUNCHER_LOG_DIR:-$HOME/Library/Logs/launcher}/${name}.log"
 
 follow=false
 shift || true
@@ -25,17 +25,22 @@ if [[ ! -f "$plist" ]]; then
   exit 1
 fi
 
-# Get log path from launchd or plist
-info="$(launcher_launchd_info "$name")"
-stdout_path="$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)"
+# Prefer launcher-managed log (written by bin/launcher-run); fall back to a
+# plist-configured StandardOutPath for legacy/manual agents.
+if [[ -f "$default_log_path" ]]; then
+  stdout_path="$default_log_path"
+else
+  info="$(launcher_launchd_info "$name")"
+  stdout_path="$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)"
 
-if [[ -z "$stdout_path" ]]; then
-  stdout_path="$(/usr/libexec/PlistBuddy -c "Print :StandardOutPath" "$plist" 2>/dev/null || echo "")"
+  if [[ -z "$stdout_path" ]]; then
+    stdout_path="$(/usr/libexec/PlistBuddy -c "Print :StandardOutPath" "$plist" 2>/dev/null || echo "")"
+  fi
 fi
 
 if [[ -z "$stdout_path" ]]; then
   echo "No log path configured for $name"
-  echo "Add StandardOutPath/StandardErrorPath to the plist (default: ${default_log_path})"
+  echo "Default location: ${default_log_path}"
   exit 1
 fi
 

@@ -2,6 +2,10 @@
 
 load "$PROJECT_ROOT/test/test_helper"
 
+setup() {
+  export LAUNCHER_LOG_DIR="$BATS_TEST_TMPDIR/logs"
+}
+
 BIN="$PROJECT_ROOT/bin/launcher-run"
 
 @test "launcher-run exists and is executable" {
