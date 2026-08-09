@@ -101,3 +101,7 @@ Started as a zsh plugin in [dotfiles](https://github.com/mracos/dotfiles), extra
 ## License
 
 MIT
+
+## Provenance
+
+Read-only mirror, generated and kept in sync by CI. PRs here are cherry-picked upstream and synced back, so open a PR rather than editing directly.
