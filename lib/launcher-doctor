@@ -52,7 +52,7 @@ for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
     [[ $agent_issues -eq 0 ]] && echo "$name:"
     check "ERROR" "stale launcher-run path: $old_run"
     if $fix; then
-      sed -i '' "s|${old_run}|${launcher_run}|g" "$bin"
+      sed_i "s|${old_run}|${launcher_run}|g" "$bin"
       check "FIXED" "updated to: $launcher_run"
       fixed=$((fixed + 1))
     fi
@@ -62,7 +62,7 @@ for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
     [[ $agent_issues -eq 0 ]] && echo "$name:"
     check "ERROR" "launcher-run not found: $old_run"
     if $fix; then
-      sed -i '' "s|${old_run}|${launcher_run}|g" "$bin"
+      sed_i "s|${old_run}|${launcher_run}|g" "$bin"
       check "FIXED" "updated to: $launcher_run"
       fixed=$((fixed + 1))
     fi

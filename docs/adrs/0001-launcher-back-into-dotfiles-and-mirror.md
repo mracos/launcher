@@ -36,7 +36,7 @@ Everything else follows mcp: subcommands source `$LIB_ROOT/shared/lib-cli.bash -
 
 ### Mechanism
 
-- **`scripts/extract-launcher.sh <build-dir>`**: offline assembler. Vendors `lib-cli.bash`, reverses the three path rewrites (dispatcher, subcommand lib-cli, `launcher-run`) plus the test-path rewrite, and emits `README.md`, `launcher.plugin.zsh`, `package.json`, `.gitignore`, `LICENSE`, `.github/workflows/ci.yml` (macOS, since launchd is macOS-only).
+- **`scripts/extract-launcher.sh <build-dir>`** (later folded into the generic `scripts/extract.sh launcher`, ADR [tools/0003](../tools/0003-generic-extraction-engine.md)): offline assembler. Vendors `lib-cli.bash`, reverses the three path rewrites (dispatcher, subcommand lib-cli, `launcher-run`) plus the test-path rewrite, and emits `README.md`, `launcher.plugin.zsh`, `package.json`, `.gitignore`, `LICENSE`, `.github/workflows/ci.yml` (macOS, since launchd is macOS-only).
 - **`.github/workflows/launcher.yml`**: assemble -> run the extracted suite on macOS -> publish (append one `sync dotfiles@<sha>` commit) only on push. Reuses `DOTFILES_PUBLISH_REPOS`.
 
 ## Consequences
