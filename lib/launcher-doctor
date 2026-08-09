@@ -3,14 +3,14 @@
 # USAGE: launcher doctor [--fix]
 
 set -euo pipefail
-SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/lib-cli.bash" --auto "$@"
+SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
+source "$SCRIPT_DIR/lib-cli.bash" --auto-help "$@"
 source "$SCRIPT_DIR/lib-plist.bash"
 
 fix=false
 [[ "${1:-}" == "--fix" ]] && fix=true
 
-launcher_run="$(cd -P "$SCRIPT_DIR/../bin" && pwd)/launcher-run"
+launcher_run="${SCRIPT_DIR%/lib}/bin/launcher-run"
 issues=0
 fixed=0
 

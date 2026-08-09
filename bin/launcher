@@ -23,18 +23,11 @@
 
 set -euo pipefail
 
-# Resolve symlinks to find real script location
-SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SOURCE="${BASH_SOURCE[0]}"
-while [[ -L "$SOURCE" ]]; do
-  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
-  SOURCE="$(readlink "$SOURCE")"
-  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
-done
-SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+SOURCE="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="${SOURCE%/*}"
+REPO_ROOT="${SCRIPT_DIR%/bin}"
 LIB_DIR="$REPO_ROOT/lib"
-source "$LIB_DIR/lib-cli.bash"
+source "$REPO_ROOT/lib/lib-cli.bash"
 
 usage() {
   cli_usage_until_blank "$0" "${1:-1}"
