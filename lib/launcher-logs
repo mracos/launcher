@@ -31,7 +31,7 @@ if [[ -f "$default_log_path" ]]; then
   stdout_path="$default_log_path"
 else
   info="$(launcher_launchd_info "$name")"
-  stdout_path="$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)"
+  launcher_parse_info "$info"
 
   if [[ -z "$stdout_path" ]]; then
     stdout_path="$(/usr/libexec/PlistBuddy -c "Print :StandardOutPath" "$plist" 2>/dev/null || echo "")"

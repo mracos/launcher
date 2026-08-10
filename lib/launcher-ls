@@ -45,10 +45,10 @@ for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
   linked=false
   [[ -L "$installed_plist" || -f "$installed_plist" ]] && linked=true
 
-  loaded=false
-  _in_set "$_loaded_names" "$name" && loaded=true
+  is_loaded=false
+  _in_set "$_loaded_names" "$name" && is_loaded=true
 
-  if ! $linked && ! $loaded; then
+  if ! $linked && ! $is_loaded; then
     if $verbose; then
       printf "%-18s %-8s %6s %6s %5s  %s\n" "$name" "unloaded" "-" "-" "-" "unlinked"
     else
@@ -58,14 +58,9 @@ for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
   fi
 
   info="$(launcher_launchd_info "$name")"
-  pid="$(echo "$info" | grep "^pid=" | cut -d= -f2)"
-  runs="$(echo "$info" | grep "^runs=" | cut -d= -f2)"
-  last_exit="$(echo "$info" | grep "^last_exit=" | cut -d= -f2)"
-  stdout_path="$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)"
-  state="$(echo "$info" | grep "^state=" | cut -d= -f2)"
-  loaded_from_info="$(echo "$info" | grep "^loaded=" | cut -d= -f2)"
-  [[ "$loaded_from_info" == "true" ]] && loaded=true
-  [[ "$loaded" != "true" ]] && state="unloaded"
+  launcher_parse_info "$info"
+  [[ "$loaded" == "true" ]] && is_loaded=true
+  [[ "$is_loaded" != "true" ]] && state="unloaded"
 
   if $verbose; then
     last_log="-"
@@ -98,10 +93,7 @@ while IFS= read -r orphan_name; do
   _in_set "$_plist_names" "$orphan_name" && continue
 
   info="$(launcher_launchd_info "$orphan_name")"
-  pid="$(echo "$info" | grep "^pid=" | cut -d= -f2)"
-  runs="$(echo "$info" | grep "^runs=" | cut -d= -f2)"
-  last_exit="$(echo "$info" | grep "^last_exit=" | cut -d= -f2)"
-  state="$(echo "$info" | grep "^state=" | cut -d= -f2)"
+  launcher_parse_info "$info"
 
   if $verbose; then
     printf "%-18s %-8s %6s %6s %5s  %s\n" \

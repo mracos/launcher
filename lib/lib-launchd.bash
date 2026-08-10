@@ -78,3 +78,13 @@ launcher_launchd_info() {
   echo "state=${state}"
   echo "loaded=${loaded}"
 }
+
+# Parse a launcher_launchd_info block (key=value lines) into shell variables of
+# the same name (pid, exit_code, runs, last_exit, stdout_path, stderr_path,
+# interval, state, loaded). One pass, no echo|grep|cut per field.
+launcher_parse_info() {
+  local key val
+  while IFS='=' read -r key val; do
+    [[ -n "$key" ]] && printf -v "$key" '%s' "$val"
+  done <<<"$1"
+}

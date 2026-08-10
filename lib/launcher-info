@@ -36,13 +36,7 @@ if [[ "$linked" == "no" ]]; then
 fi
 
 info="$(launcher_launchd_info "$name")"
-pid="$(echo "$info" | grep "^pid=" | cut -d= -f2)"
-state="$(echo "$info" | grep "^state=" | cut -d= -f2)"
-runs="$(echo "$info" | grep "^runs=" | cut -d= -f2)"
-last_exit="$(echo "$info" | grep "^last_exit=" | cut -d= -f2)"
-interval="$(echo "$info" | grep "^interval=" | cut -d= -f2)"
-stdout_path="$(echo "$info" | grep "^stdout_path=" | cut -d= -f2-)"
-stderr_path="$(echo "$info" | grep "^stderr_path=" | cut -d= -f2-)"
+launcher_parse_info "$info"
 
 echo "Status: $state"
 [[ "$pid" != "-" ]] && echo "PID: $pid"
