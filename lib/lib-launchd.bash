@@ -88,3 +88,15 @@ launcher_parse_info() {
     [[ -n "$key" ]] && printf -v "$key" '%s' "$val"
   done <<<"$1"
 }
+
+# Names (prefix-stripped) persistently disabled in the user's gui domain
+launcher_disabled_names() {
+  local line label
+  while IFS= read -r line; do
+    [[ "$line" == *"=> disabled"* ]] || continue
+    label="${line#*\"}"
+    label="${label%%\"*}"
+    [[ "$label" == ${LAUNCHER_PREFIX}.* ]] || continue
+    echo "${label#${LAUNCHER_PREFIX}.}"
+  done < <(launchctl print-disabled "gui/$(id -u)" 2>/dev/null)
+}

@@ -44,6 +44,8 @@ launcher link <name|--all>            Symlink to ~/Library/LaunchAgents
 launcher unlink <name|--all>          Remove symlink
 launcher load <name>                  Load agent
 launcher unload <name>                Unload agent
+launcher disable <name|--all>         Stop + disable persistently (survives reboots)
+launcher enable <name|--all>          Re-enable and load if linked
 launcher reload <name>                Reload agent
 launcher run <name>                   Run agent command manually
 ```

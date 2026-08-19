@@ -32,3 +32,34 @@ BIN="$PROJECT_ROOT/lib/launcher-info"
   assert_output --partial "Label: com.test.myagent"
   assert_output --partial "Linked: no"
 }
+
+@test "launcher-info shows disabled status for disabled linked agent" {
+  echo "<plist/>" > "$LAUNCHER_DIR/com.test.myagent.plist"
+  ln -s "$LAUNCHER_DIR/com.test.myagent.plist" "$LAUNCHER_INSTALL_DIR/com.test.myagent.plist"
+
+  fake_bin="$BATS_TEST_TMPDIR/fake-bin"
+  mkdir -p "$fake_bin"
+  cat > "$fake_bin/launchctl" <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "list" ]]; then
+  echo "PID	Status	Label"
+  exit 0
+fi
+if [[ "$1" == "print-disabled" ]]; then
+  echo '		"com.test.myagent" => disabled'
+  # Many trailing prefix-matching lines: a consumer that greps -q mid-stream
+  # gets SIGPIPE from the lines after the match (regression: pipefail ate it)
+  for i in $(seq 1 500); do
+    echo "		\"com.test.filler$i\" => disabled"
+  done
+  exit 0
+fi
+exit 1
+SCRIPT
+  chmod +x "$fake_bin/launchctl"
+  export PATH="$fake_bin:$PATH"
+
+  run "$BIN" myagent
+  assert_success
+  assert_output --partial "Status: disabled"
+}

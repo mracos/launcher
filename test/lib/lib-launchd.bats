@@ -127,3 +127,27 @@ SCRIPT
   assert_line "runs=0"
   assert_line "last_exit=-"
 }
+
+@test "launcher_disabled_names lists disabled names matching prefix" {
+  cat > "$fake_bin/launchctl" <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "print-disabled" ]]; then
+  cat <<'OUT'
+disabled services = {
+		"com.test.myagent" => disabled
+		"com.other.thing" => disabled
+		"com.test.active" => enabled
+	}
+OUT
+  exit 0
+fi
+exit 1
+SCRIPT
+  chmod +x "$fake_bin/launchctl"
+
+  run launcher_disabled_names
+  assert_success
+  assert_line "myagent"
+  refute_line "thing"
+  refute_line "active"
+}

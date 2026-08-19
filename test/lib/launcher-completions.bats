@@ -52,7 +52,9 @@ setup() {
     "$PROJECT_ROOT/lib/launcher-unload" \
     "$PROJECT_ROOT/lib/launcher-reload" \
     "$PROJECT_ROOT/lib/launcher-link" \
-    "$PROJECT_ROOT/lib/launcher-unlink"
+    "$PROJECT_ROOT/lib/launcher-unlink" \
+    "$PROJECT_ROOT/lib/launcher-disable" \
+    "$PROJECT_ROOT/lib/launcher-enable"
 
   assert_success
   assert_output --partial "launcher-logs:5:# COMPLETE:"

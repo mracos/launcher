@@ -75,3 +75,30 @@ SCRIPT
   assert_output --partial "orphan"
   assert_output --partial "missing source plist"
 }
+
+@test "launcher-ls shows disabled state for disabled unloaded agent" {
+  echo "<plist/>" > "$LAUNCHER_DIR/com.test.myagent.plist"
+  ln -s "$LAUNCHER_DIR/com.test.myagent.plist" "$LAUNCHER_INSTALL_DIR/com.test.myagent.plist"
+  cat > "$fake_bin/launchctl" <<'SCRIPT'
+#!/bin/bash
+if [[ "$1" == "list" ]]; then
+  echo "PID	Status	Label"
+  exit 0
+fi
+if [[ "$1" == "print-disabled" ]]; then
+  echo '		"com.test.myagent" => disabled'
+  exit 0
+fi
+exit 1
+SCRIPT
+  chmod +x "$fake_bin/launchctl"
+
+  run "$BIN"
+  assert_success
+  assert_output --partial "disabled"
+  refute_output --partial "unloaded"
+
+  run "$BIN" -v
+  assert_success
+  assert_output --partial "disabled"
+}

@@ -38,6 +38,13 @@ fi
 info="$(launcher_launchd_info "$name")"
 launcher_parse_info "$info"
 
+# Capture before matching: piping straight into grep -q dies of SIGPIPE under
+# pipefail when the match isn't the last line launchctl prints.
+disabled_names="$(launcher_disabled_names)"
+if [[ "$loaded" != "true" ]] && echo "$disabled_names" | grep -Fxq "$name"; then
+  state="disabled"
+fi
+
 echo "Status: $state"
 [[ "$pid" != "-" ]] && echo "PID: $pid"
 echo "Runs: ${runs:-0}"

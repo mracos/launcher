@@ -13,6 +13,7 @@ verbose=false
 
 # Newline-delimited sets (bash 3.2 compat - no associative arrays)
 _loaded_names="$(launcher_loaded_names)"
+_disabled_names="$(launcher_disabled_names)"
 _plist_names=""
 _seen_orphans=""
 
@@ -48,11 +49,16 @@ for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
   is_loaded=false
   _in_set "$_loaded_names" "$name" && is_loaded=true
 
+  is_disabled=false
+  _in_set "$_disabled_names" "$name" && is_disabled=true
+
   if ! $linked && ! $is_loaded; then
+    st="unloaded"
+    $is_disabled && st="disabled"
     if $verbose; then
-      printf "%-18s %-8s %6s %6s %5s  %s\n" "$name" "unloaded" "-" "-" "-" "unlinked"
+      printf "%-18s %-8s %6s %6s %5s  %s\n" "$name" "$st" "-" "-" "-" "unlinked"
     else
-      echo "◌ $name (unlinked, unloaded)"
+      echo "◌ $name (unlinked, $st)"
     fi
     continue
   fi
@@ -60,7 +66,10 @@ for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
   info="$(launcher_launchd_info "$name")"
   launcher_parse_info "$info"
   [[ "$loaded" == "true" ]] && is_loaded=true
-  [[ "$is_loaded" != "true" ]] && state="unloaded"
+  if [[ "$is_loaded" != "true" ]]; then
+    state="unloaded"
+    $is_disabled && state="disabled"
+  fi
 
   if $verbose; then
     last_log="-"
@@ -77,6 +86,7 @@ for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
     [[ "$state" == "running" ]] && status_icon="●"
     [[ "$state" == "stopped" ]] && status_icon="○"
     [[ "$last_exit" != "0" && "$last_exit" != "-" ]] && status_icon="✗"
+    [[ "$state" == "disabled" ]] && status_icon="⊘"
     if $linked; then
       printf "%s %s (%s, %s runs)\n" "$status_icon" "$name" "$state" "${runs:-0}"
     else

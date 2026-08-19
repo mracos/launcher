@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Stop an agent and persistently disable it (survives reboots/logins)
+# USAGE: launcher disable <name|--all>
+#
+# COMPLETE:
+#   1 _launcher_agent_names_or_all
+
+set -euo pipefail
+SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
+source "$SCRIPT_DIR/lib-cli.bash" --auto-help "$@"
+source "$SCRIPT_DIR/lib-plist.bash"
+
+_disable_one() {
+  local name="$1"
+  local plist label uid
+  plist="$(launcher_plist "$name")"
+  label="${LAUNCHER_PREFIX}.${name}"
+  uid="$(id -u)"
+
+  if [[ ! -f "$plist" ]]; then
+    echo "Not found: $name"
+    return 1
+  fi
+
+  # Stop it now (fails harmlessly when not loaded), then persist the disable
+  # so login/reboot doesn't bootstrap it again — a plain unload doesn't survive.
+  launchctl bootout "gui/${uid}/${label}" 2>/dev/null || true
+  if ! launchctl disable "gui/${uid}/${label}" 2>/dev/null; then
+    echo "Failed to disable: $name"
+    return 1
+  fi
+  echo "Disabled: $name"
+}
+
+name="${1:-}"
+[[ -z "$name" ]] && usage
+
+if [[ "$name" == "--all" ]]; then
+  for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
+    [[ -f "$f" ]] || continue
+    n="${f##*/}"
+    n="${n%.plist}"
+    n="${n#${LAUNCHER_PREFIX}.}"
+    _disable_one "$n"
+  done
+else
+  _disable_one "$name" || exit 1
+fi
