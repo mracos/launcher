@@ -6,8 +6,7 @@ load "$PROJECT_ROOT/test/test_helper"
 setup() {
   export LAUNCHER_PREFIX="com.test"
   export LAUNCHER_DIR="$BATS_TEST_TMPDIR/agents"
-  export LAUNCHER_INSTALL_DIR="$BATS_TEST_TMPDIR/installed"
-  mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
+  mkdir -p "$LAUNCHER_DIR"
 }
 
 BIN="$PROJECT_ROOT/lib/launcher-info"
@@ -30,12 +29,11 @@ BIN="$PROJECT_ROOT/lib/launcher-info"
   assert_success
   assert_output --partial "Agent: myagent"
   assert_output --partial "Label: com.test.myagent"
-  assert_output --partial "Linked: no"
+  assert_output --partial "Status:"
 }
 
-@test "launcher-info shows disabled status for disabled linked agent" {
+@test "launcher-info shows disabled status for disabled agent" {
   echo "<plist/>" > "$LAUNCHER_DIR/com.test.myagent.plist"
-  ln -s "$LAUNCHER_DIR/com.test.myagent.plist" "$LAUNCHER_INSTALL_DIR/com.test.myagent.plist"
 
   fake_bin="$BATS_TEST_TMPDIR/fake-bin"
   mkdir -p "$fake_bin"

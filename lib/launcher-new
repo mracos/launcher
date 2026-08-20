@@ -31,7 +31,6 @@ fi
 
 bin="${dir}/${LAUNCHER_PREFIX}.${name}"
 plist="${dir}/${LAUNCHER_PREFIX}.${name}.plist"
-installed_bin="$(launcher_installed_bin "$name")"
 launcher_run="${SCRIPT_DIR%/lib}/bin/launcher-run"
 mkdir -p "$(dirname "$plist")"
 
@@ -51,7 +50,7 @@ cat > "$plist" << EOF
   <key>Label</key><string>${LAUNCHER_PREFIX}.${name}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${installed_bin}</string>
+    <string>${bin}</string>
   </array>
   <key>RunAtLoad</key><true/>
 EOF
@@ -63,4 +62,4 @@ fi
 printf '%s\n%s\n' "</dict>" "</plist>" >> "$plist"
 
 echo "Created: $name"
-echo "Run 'launcher link $name' then 'launcher load $name'"
+echo "Run 'launcher load $name'"

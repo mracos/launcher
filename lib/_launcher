@@ -5,8 +5,9 @@
 _launcher_agent_names() {
   local -a names=()
   local f name
+  local dir="${LAUNCHER_DIR:-$HOME/Library/LaunchAgents}"
 
-  for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist(N); do
+  for f in "$dir"/${LAUNCHER_PREFIX}.*.plist(N); do
     [[ -f "$f" ]] || continue
     name="${f:t:r}"
     name="${name#${LAUNCHER_PREFIX}.}"
@@ -19,8 +20,9 @@ _launcher_agent_names() {
 _launcher_agent_names_or_all() {
   local -a values=(--all)
   local f name
+  local dir="${LAUNCHER_DIR:-$HOME/Library/LaunchAgents}"
 
-  for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist(N); do
+  for f in "$dir"/${LAUNCHER_PREFIX}.*.plist(N); do
     [[ -f "$f" ]] || continue
     name="${f:t:r}"
     name="${name#${LAUNCHER_PREFIX}.}"

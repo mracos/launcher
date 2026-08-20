@@ -6,8 +6,7 @@ load "$PROJECT_ROOT/test/test_helper"
 setup() {
   export LAUNCHER_PREFIX="com.test"
   export LAUNCHER_DIR="$BATS_TEST_TMPDIR/agents"
-  export LAUNCHER_INSTALL_DIR="$BATS_TEST_TMPDIR/installed"
-  mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
+  mkdir -p "$LAUNCHER_DIR"
   source "$PROJECT_ROOT/lib/lib-plist.bash"
 }
 
@@ -21,12 +20,6 @@ setup() {
   run launcher_bin "myagent"
   assert_success
   assert_output "$BATS_TEST_TMPDIR/agents/com.test.myagent"
-}
-
-@test "launcher_installed_bin returns correct path" {
-  run launcher_installed_bin "myagent"
-  assert_success
-  assert_output "$BATS_TEST_TMPDIR/installed/com.test.myagent"
 }
 
 @test "LAUNCHER_PREFIX defaults to local.launcher" {

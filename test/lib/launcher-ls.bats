@@ -6,8 +6,7 @@ load "$PROJECT_ROOT/test/test_helper"
 setup() {
   export LAUNCHER_PREFIX="com.test"
   export LAUNCHER_DIR="$BATS_TEST_TMPDIR/agents"
-  export LAUNCHER_INSTALL_DIR="$BATS_TEST_TMPDIR/installed"
-  mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
+  mkdir -p "$LAUNCHER_DIR"
 
   export fake_bin="$BATS_TEST_TMPDIR/fake-bin"
   mkdir -p "$fake_bin"
@@ -29,12 +28,12 @@ BIN="$PROJECT_ROOT/lib/launcher-ls"
   assert_output --partial "No agents found"
 }
 
-@test "launcher-ls shows unlinked agent" {
+@test "launcher-ls shows unloaded agent" {
   echo "<plist/>" > "$LAUNCHER_DIR/com.test.myagent.plist"
   run "$BIN"
   assert_success
   assert_output --partial "myagent"
-  assert_output --partial "unlinked"
+  assert_output --partial "unloaded"
 }
 
 @test "launcher-ls -v shows header row" {
@@ -78,7 +77,6 @@ SCRIPT
 
 @test "launcher-ls shows disabled state for disabled unloaded agent" {
   echo "<plist/>" > "$LAUNCHER_DIR/com.test.myagent.plist"
-  ln -s "$LAUNCHER_DIR/com.test.myagent.plist" "$LAUNCHER_INSTALL_DIR/com.test.myagent.plist"
   cat > "$fake_bin/launchctl" <<'SCRIPT'
 #!/bin/bash
 if [[ "$1" == "list" ]]; then

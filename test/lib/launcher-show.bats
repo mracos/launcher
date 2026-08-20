@@ -6,8 +6,7 @@ load "$PROJECT_ROOT/test/test_helper"
 setup() {
   export LAUNCHER_PREFIX="com.test"
   export LAUNCHER_DIR="$BATS_TEST_TMPDIR/agents"
-  export LAUNCHER_INSTALL_DIR="$BATS_TEST_TMPDIR/installed"
-  mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
+  mkdir -p "$LAUNCHER_DIR"
 }
 
 BIN="$PROJECT_ROOT/lib/launcher-show"

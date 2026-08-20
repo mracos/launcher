@@ -20,20 +20,10 @@ if [[ ! -f "$plist" ]]; then
   exit 1
 fi
 
-installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
-linked="no"
-[[ -L "$installed_plist" ]] && linked="yes"
-
 echo "Agent: $name"
 echo "Label: ${LAUNCHER_PREFIX}.${name}"
 echo "Plist: $plist"
-echo "Linked: $linked"
 echo ""
-
-if [[ "$linked" == "no" ]]; then
-  echo "Run 'launcher link $name' to enable"
-  exit 0
-fi
 
 info="$(launcher_launchd_info "$name")"
 launcher_parse_info "$info"

@@ -2,7 +2,7 @@
 
 Manage macOS launch agents from the command line.
 
-Create, link, load, and inspect `launchd` agents without touching XML by hand.
+Create, load, and inspect `launchd` agents without touching XML by hand.
 
 ## Install
 
@@ -40,12 +40,10 @@ launcher new [-d dir] <name> <cmd> [interval]  Create an agent
 launcher rm <name>                    Remove an agent
 launcher show <name>                  Show agent plist
 launcher edit <name>                  Edit agent plist
-launcher link <name|--all>            Symlink to ~/Library/LaunchAgents
-launcher unlink <name|--all>          Remove symlink
 launcher load <name>                  Load agent
 launcher unload <name>                Unload agent
 launcher disable <name|--all>         Stop + disable persistently (survives reboots)
-launcher enable <name|--all>          Re-enable and load if linked
+launcher enable <name|--all>          Re-enable and load
 launcher reload <name>                Reload agent
 launcher run <name>                   Run agent command manually
 ```
@@ -56,8 +54,7 @@ launcher run <name>                   Run agent command manually
 # Create an agent that runs every 5 minutes
 launcher new my-task 'echo "hello" >> /tmp/my-task.log' 300
 
-# Link it to ~/Library/LaunchAgents and load it
-launcher link my-task
+# Load it
 launcher load my-task
 
 # Check status
@@ -71,17 +68,11 @@ launcher logs my-task -f
 | Variable | Default | Description |
 |---|---|---|
 | `LAUNCHER_PREFIX` | `local.launcher` | Label prefix for agents |
-| `LAUNCHER_DIR` | `~/Library/LaunchAgents` | Where plist files are stored |
-| `LAUNCHER_INSTALL_DIR` | `~/Library/LaunchAgents` | Where symlinks point (for dotfiles setups where source != install) |
+| `LAUNCHER_DIR` | `~/Library/LaunchAgents` | The agent dir launcher operates on |
 
-For dotfiles setups where plists are tracked in git:
+launcher works on a single directory. The default is `~/Library/LaunchAgents` because it is the only dir launchd auto-loads at login; agents there are the ones that exist, and "yours" are the files matching `LAUNCHER_PREFIX`.
 
-```sh
-export LAUNCHER_PREFIX="br.com.myname"
-export LAUNCHER_DIR="$DOTFILES_REPO/files/mac/Library/LaunchAgents"
-```
-
-This stores plists in your dotfiles repo. Use `launcher link` to symlink them to `~/Library/LaunchAgents`.
+For dotfiles setups where plists are tracked in git, keep the default dir and let your dotfiles manager (stow, etc.) symlink the tracked plists into `~/Library/LaunchAgents`; launcher treats the symlinks like any other agent. If you point `LAUNCHER_DIR` elsewhere, launchd won't auto-load from it, so persistence across logins is on you.
 
 ## Architecture
 

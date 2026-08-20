@@ -13,11 +13,11 @@ source "$SCRIPT_DIR/lib-launchd.bash"
 
 _unload_one() {
   local name="$1"
-  local installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
+  local plist
+  plist="$(launcher_plist "$name")"
 
-  # If plist is linked, unload via plist
-  if [[ -f "$installed_plist" ]]; then
-    launchctl unload "$installed_plist" 2>/dev/null
+  if [[ -f "$plist" ]]; then
+    launchctl unload "$plist" 2>/dev/null
     echo "Unloaded: $name"
     return 0
   fi
@@ -26,12 +26,14 @@ _unload_one() {
   local uid
   uid="$(id -u)"
 
-  # Dangling symlink: source was renamed/deleted but symlink remains
-  if [[ -L "$installed_plist" ]]; then
+  # Dangling symlink: target (e.g. repo file behind a stow link) was
+  # renamed/deleted but the link remains
+  if [[ -L "$plist" ]]; then
     launchctl bootout "gui/${uid}/${label}" 2>/dev/null || launchctl remove "$label" 2>/dev/null || true
-    rm "$installed_plist"
+    rm "$plist"
     # Also remove the runner symlink if dangling
-    local runner="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}"
+    local runner
+    runner="$(launcher_bin "$name")"
     [[ -L "$runner" && ! -e "$runner" ]] && rm "$runner"
     echo "Unloaded (dangling): $name"
     return 0
@@ -47,7 +49,7 @@ _unload_one() {
     return 1
   fi
 
-  echo "Not linked: $name"
+  echo "Not found: $name"
   return 1
 }
 
@@ -55,7 +57,7 @@ name="${1:-}"
 [[ -z "$name" ]] && usage
 
 if [[ "$name" == "--all" ]]; then
-  for f in "$LAUNCHER_INSTALL_DIR"/${LAUNCHER_PREFIX}.*.plist; do
+  for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
     [[ -f "$f" || -L "$f" ]] || continue
     n="$(basename "$f" .plist)"
     n="${n#${LAUNCHER_PREFIX}.}"

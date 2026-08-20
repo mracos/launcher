@@ -12,14 +12,15 @@ source "$SCRIPT_DIR/lib-plist.bash"
 
 _load_one() {
   local name="$1"
-  local installed_plist="${LAUNCHER_INSTALL_DIR}/${LAUNCHER_PREFIX}.${name}.plist"
+  local plist
+  plist="$(launcher_plist "$name")"
 
-  if [[ ! -f "$installed_plist" ]]; then
-    echo "Not linked: $name (run 'launcher link $name' first)"
+  if [[ ! -f "$plist" ]]; then
+    echo "Not found: $name (no plist in $LAUNCHER_DIR)"
     return 1
   fi
 
-  launchctl load "$installed_plist" 2>/dev/null
+  launchctl load "$plist" 2>/dev/null
   echo "Loaded: $name"
 }
 
@@ -27,7 +28,7 @@ name="${1:-}"
 [[ -z "$name" ]] && usage
 
 if [[ "$name" == "--all" ]]; then
-  for f in "$LAUNCHER_INSTALL_DIR"/${LAUNCHER_PREFIX}.*.plist; do
+  for f in "$LAUNCHER_DIR"/${LAUNCHER_PREFIX}.*.plist; do
     [[ -f "$f" ]] || continue
     n="$(basename "$f" .plist)"
     n="${n#${LAUNCHER_PREFIX}.}"

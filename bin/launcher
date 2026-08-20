@@ -9,19 +9,17 @@
 #   launcher rm <name>                    Remove an agent
 #   launcher show <name>                  Show agent plist
 #   launcher edit <name>                  Edit agent plist
-#   launcher link <name|--all>            Symlink to ~/Library/LaunchAgents
-#   launcher unlink <name|--all>          Remove symlink
 #   launcher reload <name>                Reload agent
 #   launcher run <name>                   Run agent command manually
 #   launcher load <name>                  Load agent
 #   launcher unload <name>                Unload agent
 #   launcher disable <name|--all>         Stop + disable persistently (survives reboots)
-#   launcher enable <name|--all>          Re-enable and load if linked
+#   launcher enable <name|--all>          Re-enable and load
 #
 # CONFIGURATION:
 #   LAUNCHER_PREFIX    Label prefix (default: br.com.mracos)
-#   LAUNCHER_DIR       Plist storage dir (default: ~/Library/LaunchAgents)
-#   LAUNCHER_INSTALL_DIR  Symlink target (default: ~/Library/LaunchAgents)
+#   LAUNCHER_DIR       Agent dir launcher operates on (default: ~/Library/LaunchAgents,
+#                      the only dir launchd auto-loads at login; ADR launcher/0002)
 
 set -euo pipefail
 

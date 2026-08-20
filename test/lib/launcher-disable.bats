@@ -6,8 +6,7 @@ load "$PROJECT_ROOT/test/test_helper"
 setup() {
   export LAUNCHER_PREFIX="com.test"
   export LAUNCHER_DIR="$BATS_TEST_TMPDIR/agents"
-  export LAUNCHER_INSTALL_DIR="$BATS_TEST_TMPDIR/installed"
-  mkdir -p "$LAUNCHER_DIR" "$LAUNCHER_INSTALL_DIR"
+  mkdir -p "$LAUNCHER_DIR"
 
   # Fake launchctl that logs every invocation
   fake_bin="$BATS_TEST_TMPDIR/fake-bin"
@@ -26,10 +25,6 @@ ENABLE_BIN="$PROJECT_ROOT/lib/launcher-enable"
 
 create_agent() {
   echo "<plist/>" > "$LAUNCHER_DIR/com.test.$1.plist"
-}
-
-link_agent() {
-  ln -s "$LAUNCHER_DIR/com.test.$1.plist" "$LAUNCHER_INSTALL_DIR/com.test.$1.plist"
 }
 
 @test "launcher-disable fails for unknown agent" {
@@ -97,9 +92,8 @@ SCRIPT
   assert_output --partial "Not found: nonexistent"
 }
 
-@test "launcher-enable enables and loads a linked agent" {
+@test "launcher-enable enables and loads the agent" {
   create_agent myagent
-  link_agent myagent
 
   run "$ENABLE_BIN" myagent
   assert_success
@@ -107,17 +101,5 @@ SCRIPT
 
   run cat "$BATS_TEST_TMPDIR/launchctl.log"
   assert_output --partial "launchctl enable gui/$(id -u)/com.test.myagent"
-  assert_output --partial "launchctl load $LAUNCHER_INSTALL_DIR/com.test.myagent.plist"
-}
-
-@test "launcher-enable on unlinked agent enables but skips load" {
-  create_agent myagent
-
-  run "$ENABLE_BIN" myagent
-  assert_success
-  assert_output --partial "Enabled: myagent (not linked)"
-
-  run cat "$BATS_TEST_TMPDIR/launchctl.log"
-  assert_output --partial "launchctl enable gui/$(id -u)/com.test.myagent"
-  refute_output --partial "launchctl load"
+  assert_output --partial "launchctl load $LAUNCHER_DIR/com.test.myagent.plist"
 }
